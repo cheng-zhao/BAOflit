@@ -69,7 +69,6 @@ double *qrdcmp(double *A, const size_t m, const size_t n) {
     MATRIX(A,m,n-1,n-1) = (MATRIX(A,m,n-1,n-1) > 0) ? -sqrt(sum) : sqrt(sum);
   }
 
-  /* Allocate memory for R and assign values. */
   size_t l = (n << 1) - 1;
   for (size_t i = 0; i < n; i++) {
     size_t offset = ((l - i) * i) >> 1;

@@ -309,7 +309,7 @@ static int get_cov(const CONF *conf, ARGS * args) {
       }
     }
 
-    /* Renormalise R. */
+    /* Renormalise R with the Hartlap (2007) correction. */
     double norm = 1 / sqrt(args->nmock - args->nbin - 2);
     size_t len = (args->nbin * (args->nbin + 1)) >> 1;
     for (size_t i = 0; i < len; i++) args->Rcov[i] *= norm;
