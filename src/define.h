@@ -37,6 +37,9 @@
 #ifndef M_PI
 #define M_PI            0x1.921fb54442d18p+1    /* PI */
 #endif
+#ifndef M_E
+#define M_E             0x1.5bf0a8b145769p+1    /* e */
+#endif
 #define DOUBLE_EPSILON  1e-16   /* ~ machine epsilon for double numbers */
 #define DOUBLE_TOL      1e-8    /* tolerance for double number comparison */
 
