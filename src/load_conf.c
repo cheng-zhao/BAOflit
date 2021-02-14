@@ -84,22 +84,112 @@ Function `usage`:
 ******************************************************************************/
 static void usage(void *args) {
   (void) args;
-  /*
   printf("Usage: " BAOFLIT_CODE_NAME " [OPTION]\n\
-Compute the 2-point correlation functions of survey-like catalogs.\n\
+Perform multi-tracer BAO fit with the MultiNest sampler.\n\
   -h, --help\n\
         Display this message and exit\n\
   -t, --template\n\
         Print a template configuration file to the standard output and exit\n\
   -c, --conf            " FMT_KEY(CONFIG_FILE) "     String\n\
         Specify the configuration file (default: `%s')\n\
+  -d, --data            " FMT_KEY(DATA_FILE) "       String array\n\
+        Set the input 2PCFs to be fitted\n\
+  -T, --tracer          " FMT_KEY(TRACER) "          String array\n\
+        Specify tracers of the 2PCFs, indicated by pairs of letters\n\
+  -s, --data-s          " FMT_KEY(DATA_SEP_COL) "    Integer array\n\
+        Column numbers (starting from 1) for separations in " FMT_KEY(DATA_FILE) "\n\
+  -y, --data-xi         " FMT_KEY(DATA_XI_COL) "     Integer array\n\
+        Column numbers (starting from 1) for 2PCFs in " FMT_KEY(DATA_FILE) "\n\
+      --fit-min         " FMT_KEY(FIT_SEP_MIN) "     Double array\n\
+        Minimum separations of 2PCFs for the fit\n\
+      --fit-max         " FMT_KEY(FIT_SEP_MAX) "     Double array\n\
+        Maximum separations of 2PCFs for the fit\n\
+  -C, --cov             " FMT_KEY(COV_FILE) "        String\n\
+        Set the covariance matrix (generated using this program) for the fit\n\
+  -m, --mock            " FMT_KEY(MOCK_LIST) "       String array\n\
+        Set the lists of mock 2PCFs used for covariance matrix estimations\n\
+  -S, --mock-s          " FMT_KEY(MOCK_SEP_COL) "    Integer array\n\
+        Column numbers (starting from 1) for separations in " FMT_KEY(MOCK_LIST) "\n\
+  -Y, --mock-xi         " FMT_KEY(MOCK_XI_COL) "     Integer array\n\
+        Column numbers (starting from 1) for 2PCFs in " FMT_KEY(MOCK_LIST) "\n\
+      --comment         " FMT_KEY(FILE_COMMENT) "    Character\n\
+        Specify comment symbols for input files\n\
+      --alpha-min       " FMT_KEY(ALPHA_PRIOR_MIN) " Double\n\
+        Set the lower prior limit of alpha\n\
+      --alpha-max       " FMT_KEY(ALPHA_PRIOR_MAX) " Double\n\
+        Set the upper prior limit of alpha\n\
+  -B, --B-fit           " FMT_KEY(TRACER_BIAS_FIT) " Character array\n\
+        Specify tracers with free bias parameters (B)\n\
+      --B-prior-type    " FMT_KEY(BIAS_PRIOR_TYPE) " Integer\n\
+        Prior type of the bias parameters\n\
+      --B-min           " FMT_KEY(BIAS_PRIOR_MIN) "  Double array\n\
+        Set the lower prior limits of B\n\
+      --B-max           " FMT_KEY(BIAS_PRIOR_MAX) "  Double array\n\
+        Set the upper prior limits of B\n\
+      --B-center        " FMT_KEY(BIAS_PRIOR_CEN) "  Double array\n\
+        Set the central values for Gaussian priors of B\n\
+      --B-sigma         " FMT_KEY(BIAS_PRIOR_SIG) "  Double array\n\
+        Set the standard deviations for Gaussian priors of B\n\
+      --Snl-value       " FMT_KEY(SIGMA_VALUE) "     Double array\n\
+        Set fixed values of the BAO dampling parameters (Sigma_nl)\n\
+      --Snl-min         " FMT_KEY(SIGMA_PRIOR_MIN) " Double array\n\
+        Set the lower prior limits of Sigma_nl\n\
+      --Snl-max         " FMT_KEY(SIGMA_PRIOR_MAX) " Double array\n\
+        Set the upper prior limits of Sigma_nl\n\
+      --num-nuisance    " FMT_KEY(NUM_NUISANCE) "    Integer\n\
+        Number of nuisance parameters for least-squared fits\n\
+  -p, --pk-lin          " FMT_KEY(PK_LINEAR) "       String\n\
+        Set the input linear matter power spectrum\n\
+  -P, --pk-nw           " FMT_KEY(PK_NOBAO_MATTER) " String\n\
+        Set the input linear non-wiggle matter power spectrum\n\
+      --pk-tracer       " FMT_KEY(PK_NOBAO_TRACER) " String array\n\
+        Set the input linear non-wiggle tracer power spectrum templates\n\
+      --k-norm          " FMT_KEY(K_NORM) "          Double\n\
+        The upper limit of k used for non-wiggle power spectra normalisations\n\
+      --k-min           " FMT_KEY(K_MIN) "           Double\n\
+        Minimum k value for sampling template power spectra\n\
+      --k-max           " FMT_KEY(K_MAX) "           Double\n\
+        Maximum k value for sampling template power spectra\n\
+      --pk-int          " FMT_KEY(PK_INT_METHOD) "   Integer\n\
+        Method for integrating the template power spectra\n\
+      --num-log-k       " FMT_KEY(NUM_LOG_K) "       Integer\n\
+        Number of log(k) bins for the trapezoidal integration\n\
+      --lg-orderr       " FMT_KEY(LEGAUSS_ORDER) "   Integer\n\
+        Order of Legendre-Gauss quadrature for power spectra integration\n\
+      --pk-int-damp     " FMT_KEY(PK_INT_DAMP) "     Double\n\
+        The damping parameter for power spectra integrations\n\
+      --s-min           " FMT_KEY(S_MIN) "           Double\n\
+        Minimum separation for sampling the model 2PCFs\n\
+      --s-max           " FMT_KEY(S_MAX) "           Double\n\
+        Maximum separation for sampling the model 2PCFs\n\
+      --s-step          " FMT_KEY(S_BIN_SIZE) "      Double\n\
+        Bin size of separations for the model 2PCFs\n\
+      --hubble          " FMT_KEY(HUBBLE) "          Double\n\
+        The dimensionless Hubble parameter for generating " FMT_KEY(PK_NOBAO_MATTER) "\n\
+      --omega-m         " FMT_KEY(OMEGA_M) "         Double\n\
+        Density parameter of matter at redshift 0\n\
+      --omega-b         " FMT_KEY(OMEGA_B) "         Double\n\
+        Density parameter of baryons at redshift 0\n\
+      --CMB-temp        " FMT_KEY(CMB_TEMP) "        Double\n\
+        Temperature of cosmic microwave background in Kelvin\n\
+      --pk-ns           " FMT_KEY(PK_NS) "           Double\n\
+        Scalar index of the primordial power spectrum\n\
+  -n, --num-live        " FMT_KEY(NUM_LIVE) "        Integer\n\
+        Number of live points for the MultiNest sampler\n\
+  -e, --tolerance       " FMT_KEY(TOLERANCE) "       Double\n\
+        Tolerance (stopping criteria) for the MultiNest sampler\n\
+  -r, --resume          " FMT_KEY(RESUME) "          Boolean\n\
+        Indicate whether to resume the previous MultiNest run\n\
+  -o, --output          " FMT_KEY(OUTPUT_ROOT) "     String\n\
+        Set the basename of outputs\n\
+  -b, --best-fit        " FMT_KEY(BEST_FIT) "\n\
+        Set the output file of the best-fit model 2PCFs\n\
   -v, --verbose         " FMT_KEY(VERBOSE) "         Boolean\n\
         Indicate whether to display detailed standard outputs\n\
 Consult the -t option for more information on the parameters\n\
 Github repository: https://github.com/cheng-zhao/BAOflit\n\
 Licence: MIT\n",
     DEFAULT_CONF_FILE);
-  */
   exit(0);
 }
 
@@ -109,7 +199,6 @@ Function `conf_template`:
 ******************************************************************************/
 static void conf_template(void *args) {
   (void) args;
-  /*
   printf("# Configuration file for " BAOFLIT_CODE_NAME " (default: `"
 DEFAULT_CONF_FILE "').\n\
 # Format: keyword = value # comment\n\
@@ -120,11 +209,174 @@ DEFAULT_CONF_FILE "').\n\
 # NOTE that command line options have priority over this file.\n\
 # Unnecessary entries can be left unset.\n\
 \n\
-##########################################\n\
+#############################################################\n\
+#  Specifications of the data vector and covariance matrix  #\n\
+#############################################################\n\
+\n\
+DATA_FILE       = \n\
+    # Filename for the 2-point correlation functions (2PCFs) to be fitted.\n\
+    # String or string array. If multiple data files are supplied,\n\
+    # the corresponding data vectors are joined for the simultaneous fit.\n\
+TRACER          = \n\
+    # Tracers of the 2PCFs, indicated by pairs of case-sensitive letters.\n\
+    # String or string array, same dimension as `DATA_FILE`.\n\
+    # If the two letters are different, the corresponding 2PCF is treated as\n\
+    # cross correlations, while identical letters indicate auto 2PCFs.\n\
+    # Biases of cross 2PCFs are computed as products of the two tracer biases.\n\
+DATA_SEP_COL    = \n\
+    # Column numbers (starting from 1) for separations in each `DATA_FILE`.\n\
+    # Integer or integer array, same dimension as `DATA_FILE`.\n\
+DATA_XI_COL     = \n\
+    # Column numbers (starting from 1) for 2PCFs.\n\
+    # Integer or integer array, same dimension as `DATA_FILE`.\n\
+FIT_SEP_MIN     = \n\
+FIT_SEP_MAX     = \n\
+    # Minimum and maximum separations of each 2PCF for the fit.\n\
+    # Double-precision numbers or arrays, same dimension as `DATA_FILE`.\n\
+COV_FILE        = \n\
+    # Filename for the covariance matrix.\n\
+    # If it is unset, or set but the file does not exist, the covariance matrix\n\
+    # will be computed using `MOCK_LIST`, and saved to `COV_FILE`.\n\
+MOCK_LIST       = \n\
+    # Filename for lists of 2PCFs from mocks.\n\
+    # String or string array, same dimension as `DATA_FILE`.\n\
+    # The order of mock lists should be consistent with that of `DATA_FILE`.\n\
+    # For each mock list, the format of the 2PCF files should be identical.\n\
+MOCK_SEP_COL    = \n\
+    # Column numbers for separations of mock 2PCFs in each list.\n\
+    # Integer or integer array, same dimension as `DATA_FILE`.\n\
+MOCK_XI_COL     = \n\
+    # Column numbers for 2PCFs of mocks in each list.\n\
+    # Integer or integer array, same dimension as `DATA_FILE`.\n\
+FILE_COMMENT    = \n\
+    # Character indicating lines to be skipped for input files (unset: '%c%s.\n\
+\n\
+########################################\n\
+#  Settings of the fitting parameters  #\n\
+########################################\n\
+\n\
+ALPHA_PRIOR_MIN = \n\
+ALPHA_PRIOR_MAX = \n\
+    # Flat prior ranges of alpha.\n\
+    # Double-precision numbers.\n\
+TRACER_BIAS_FIT = \n\
+    # Tracers with biases as free parameters, indicated by letters.\n\
+    # Character or character array.\n\
+    # The letters should be taken from the ones defined in `TRACER`.\n\
+    # If the bias of a tracer is not supplied here, its value is set to 1.\n\
+BIAS_PRIOR_TYPE = \n\
+    # Prior type of the bias parameters (B, unset: %d).\n\
+    # Integer, allowed values are:\n\
+    # * 0: flat prior;\n\
+    # * 1: Gaussian prior.\n\
+BIAS_PRIOR_MIN  = \n\
+BIAS_PRIOR_MAX  = \n\
+    # Prior ranges of B, for both the flat and Gaussian priors.\n\
+    # Double-precision number or array, same dimension as `TRACER_BIAS_FIT`.\n\
+BIAS_PRIOR_CEN  = \n\
+BIAS_PRIOR_SIG  = \n\
+    # Mean and standard deviation for the Gaussian prior of B.\n\
+    # Double-precision number or array, same dimension as `TRACER_BIAS_FIT`.\n\
+SIGMA_VALUE     = \n\
+    # The BAO damping parameter (Sigma_nl).\n\
+    # Double-precision number or array, same dimension as `DATA_FILE`.\n\
+    # If unset, Sigma_nl is fitted as free parameter.\n\
+SIGMA_PRIOR_MIN = \n\
+SIGMA_PRIOR_MAX = \n\
+    # Flat prior ranges of Sigma_nl.\n\
+    # Double-precision number or array, same dimension as `DATA_FILE`.\n\
+    # They are used only if `SIGMA_VALUE` is unset.\n\
+NUM_NUISANCE    = \n\
+    # Number of noisance (polynomial) parameters for all 2PCFs (unset: %d).\n\
+\n\
+#################################\n\
+#  Specifications of the model  #\n\
+#################################\n\
+\n\
+PK_LINEAR       = \n\
+    # Filename for the linear matter power spectrum.\n\
+    # The first two columns must be k and P(k).\n\
+PK_NOBAO_MATTER = \n\
+    # Filename for the linear non-wiggle (no BAO) matter power spectrum.\n\
+    # The first two columns must be k and P(k).\n\
+    # If unset, the non-wiggle power spectrum will be computed following\n\
+    # Eisenstein & Hu 1998 (arXiv:astro-ph/9709112).\n\
+PK_NOBAO_TRACER = \n\
+    # Filename for the linear non-wiggle tracer power spectrum.\n\
+    # The first two columns must be k and P(k).\n\
+    # String or string array, same dimension as `DATA_FILE`.\n\
+    # It is used for modelling scale-dependent bias of tracers, see\n\
+    # Zhao et al. in preparation.\n\
+    # Leave it unset to disable the tracer bias model for all data, or set an\n\
+    # empty string ("") to disable the model for a given 2PCF in `DATA_FILE`.\n\
+    # See also Variu et al. in preparation.\n\
+K_NORM          = \n\
+    # The non-wiggle power spectra are normalised below this k value.\n\
+    # Double-precision number.\n\
+K_MIN           = \n\
+K_MAX           = \n\
+    # Minimum and maximum k values for integrating the power spectra.\n\
+    # Double-precision numbers.\n\
+PK_INT_METHOD   = \n\
+    # Method for integrating the power spectra (unset: %d).\n\
+    # Integer, allowed values are:\n\
+    # * 0: trapezoidal integration with `NUM_LOG_K` sample points;\n\
+    # * 1: Legendre-Gauss quadrature with the order of `LEGAUSS_ORDER`.\n\
+NUM_LOG_K       = \n\
+    # Integer, number of log(k) bins for integrating the power spectra.\n\
+LEGAUSS_ORDER   = \n\
+    # Order of Legendre-Gauss quadrature for integrating the power spectra.\n\
+    # Integer between 4 and 32.\n\
+PK_INT_DAMP     = \n\
+    # The damping parameter for integrating power spectra.\n\
+    # Double-precision number. See the a factor in Eq. (27) of\n\
+    # Xu et al. 2012 (arXiv:1202.0091).\n\
+S_MIN           = \n\
+S_MAX           = \n\
+S_BIN_SIZE      = \n\
+    # Lower and upper limits, and width of separation bins for the model 2PCF.\n\
+    # Double-precision numbers.\n\
+\n\
+###############################################################\n\
+#  Cosmological parameters for the non-wiggle power spectrum  #\n\
+###############################################################\n\
+\n\
+HUBBLE          = \n\
+    # The non-deminsional Hubble parameter (h).\n\
+OMEGA_M         = \n\
+    # Density parameter of matter at redshift 0.\n\
+OMEGA_B         = \n\
+    # Density parameter of baryons at redshift 0.\n\
+CMB_TEMP        = \n\
+    # Temperature of cosmic microwave background in Kelvin.\n\
+PK_NS           = \n\
+    # Scalar index of the primordial power spectrum.\n\
+\n\
+############################################\n\
+#  Configurations for parameter inference  #\n\
+############################################\n\
+\n\
+NUM_LIVE        = \n\
+    # Integer, number of live points for the MultiNest sampler.\n\
+TOLERANCE       = \n\
+    # Tolerance (stopping criteria) for the MultiNest sampler.\n\
+    # Double-precision number.\n\
+RESUME          = \n\
+    # Boolean option, indicate whether to resume the MultiNest run (unset: %c).\n\
+\n\
+##############################\n\
+#  Settings for the outputs  #\n\
+##############################\n\
+\n\
+OUTPUT_ROOT     = \n\
+    # String, basename of the outputs to be written by multinest.\n\
+BEST_FIT        = \n\
+    # String, filename for saving the best-fit model 2PCFs.\n\
 VERBOSE         = \n\
     # Boolean option, indicate whether to show detailed outputs (unset: %c).\n",
-      DEFAULT_VERBOSE ? 'T' : 'F');
-  */
+      DEFAULT_COMMENT ? DEFAULT_COMMENT : '\'', DEFAULT_COMMENT ? "')" : ")",
+      DEFAULT_BIAS_PRIOR, DEFAULT_NUM_NUISANCE, DEFAULT_PK_INT_METHOD,
+      DEFAULT_RESUME ? 'T' : 'F', DEFAULT_VERBOSE ? 'T' : 'F');
   exit(0);
 }
 
@@ -206,7 +458,7 @@ static cfg_t *conf_read(CONF *conf, const int argc, char *const *argv) {
     { 0 , "num-nuisance", "NUM_NUISANCE"   , CFG_DTYPE_INT , &conf->npoly   },
     {'p', "pk-lin"      , "PK_LINEAR"      , CFG_DTYPE_STR , &conf->fplin   },
     {'P', "pk-nw"       , "PK_NOBAO_MATTER", CFG_DTYPE_STR , &conf->fpnw    },
-    { 0 , "pk-tracer"   , "PK_NOBAO_TRACER", CFG_DTYPE_STR , &conf->fpnwt   },
+    { 0 , "pk-tracer"   , "PK_NOBAO_TRACER", CFG_ARRAY_STR , &conf->fpnwt   },
     { 0 , "k-norm"      , "K_NORM"         , CFG_DTYPE_DBL , &conf->knorm   },
     { 0 , "k-min"       , "K_MIN"          , CFG_DTYPE_DBL , &conf->kmin    },
     { 0 , "k-max"       , "K_MAX"          , CFG_DTYPE_DBL , &conf->kmax    },
