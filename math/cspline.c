@@ -12,6 +12,7 @@
 
 #include "cspline.h"
 #include <stdlib.h>
+#include <stdint.h>
 
 /*******************************************************************************
   Implementation of the "natural" cubic spline interpolation algorithm.
