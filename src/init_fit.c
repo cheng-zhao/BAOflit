@@ -19,6 +19,7 @@
 #include "save_res.h"
 #include "fit_args.h"
 #include <stdlib.h>
+#include <stdint.h>
 #include <string.h>
 #include <float.h>
 #include <math.h>
