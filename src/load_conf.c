@@ -1198,7 +1198,7 @@ static void conf_print(const CONF *conf) {
   printf("\n  RESUME          = %c", conf->resume ? 'T' : 'F');
 
   /* Outputs. */
-  printf("\n  OUTPUT_ROOT     = %s", conf->oroot);
+  printf("\n  OUTPUT_ROOT     = %s\n", conf->oroot);
 }
 
 
