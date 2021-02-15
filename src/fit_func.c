@@ -327,6 +327,7 @@ void run_multinest(CONF *conf, ARGS *args) {
 
 #ifdef DEBUG
   for (int i = 0; i < args->npar * 3; i++) args->pmodel[i] = 1;
+  /* Parameter orders: alpha, B_1, B_2, ..., B_n, Snl_1, Snl_2, ..., Snl_n. */
   args->pmodel[0] = 1;
   args->pmodel[1] = 1.45;
   args->pmodel[2] = 0.74;
