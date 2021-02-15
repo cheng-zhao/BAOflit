@@ -80,6 +80,7 @@ typedef struct {
   double *PBAO;         /* BAO wiggles from the linear matter power spectra  */
   double *Pnw;          /* wiggle-free linear matter power spectrum          */
   double **Pnwt;        /* wiggle-free linear tracer power spectra           */
+  const bool *has_nwt;  /* whether wiggle-free tracer power spectra exist    */
   double *Pm;           /* model power spectrum                              */
 
   size_t ns;            /* number of separation bins for the template 2PCF   */

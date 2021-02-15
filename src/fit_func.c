@@ -36,7 +36,7 @@ static inline void xi_template(const double *par, ARGS *args) {
   for (int k = 0; k < args->nxi; k++) {
     double Snl2 = par[k] * par[k];
     /* Compute the template power spectra. */
-    if (args->Pnwt[k]) {
+    if (args->has_nwt[k]) {
       for (size_t j = 0; j < args->nk; j++) {
         args->Pm[j] = (args->PBAO[j] * exp(-args->halfk2[j] * Snl2)
             + args->Pnw[j]) * args->Pnwt[k][j];
@@ -107,11 +107,22 @@ static inline void least_square_fit(ARGS *args) {
   bwd_subst(args->LS_U, args->apoly, ntot, args->apoly);
 
   /* Compute the residual with the nuisance parameters. */
+  /* TEST
   for (size_t j = 0; j < args->nbin; j++) {
     double poly = 0;
     for (size_t i = 0; i < ntot; i++)
       poly += args->apoly[i] * args->basis[j * args->npoly + i];
     args->xim[j] -= poly;
+  }
+  */
+  for (int k = 0; k < args->nxi; k++) {
+    double *apoly = args->apoly + k * args->npoly;
+    for (size_t j = args->idata[k]; j < args->edata[k]; j++) {
+      double poly = 0;
+      for (int i = 0; i < args->npoly; i++)
+        poly += apoly[i] * args->basis[j * args->npoly + i];
+      args->xim[j] -= poly;
+    }
   }
 }
 
@@ -311,6 +322,22 @@ void run_multinest(CONF *conf, ARGS *args) {
   if (conf->verbose) printf("\n");
   fflush(stdout);
 
+  /* The template 2PCFs can be pre-computed if Sigma_nl values are fixed. */
+  if (!args->fit_Snl) xi_template(conf->val_Snl, args);
+
+#ifdef DEBUG
+  for (int i = 0; i < args->npar * 3; i++) args->pmodel[i] = 1;
+  args->pmodel[0] = 1;
+  args->pmodel[1] = 1.45;
+  args->pmodel[2] = 0.74;
+  args->pmodel[3] = 7.5;
+  args->pmodel[4] = 5.9;
+  args->pmodel[5] = 6.4;
+#else
+  /* Pre-process the filename to be accessed by fortran. */
+  size_t flen = strlen(conf->oroot);
+  for (size_t i = flen; i < BAOFLIT_MN_FNAME_LEN; i++) conf->oroot[i] = ' ';
+
   /* Initialise MultiNest parameters */
   int IS = BAOFLIT_MN_IS;
   int mmodal = BAOFLIT_MN_MMODAL;
@@ -334,13 +361,6 @@ void run_multinest(CONF *conf, ARGS *args) {
   int *pWrap = malloc(sizeof(int) * args->npar);
   for (int i = 0; i < args->npar; i++) pWrap[i] = BAOFLIT_MN_PWRAP;
 
-  /* The template 2PCFs can be pre-computed if Sigma_nl values are fixed. */
-  if (!args->fit_Snl) xi_template(conf->val_Snl, args);
-
-  /* Pre-process the filename to be accessed by fortran. */
-  size_t flen = strlen(conf->oroot);
-  for (size_t i = flen; i < BAOFLIT_MN_FNAME_LEN; i++) conf->oroot[i] = ' ';
-
   /* Run the MultiNest fit. */
   run(IS, mmodal, ceff, nlive, tol, efr, ndims, nPar, nClsPar, maxModes,
         updInt, Ztol, conf->oroot, seed, pWrap, fb, resume, outfile, initMPI,
@@ -348,6 +368,7 @@ void run_multinest(CONF *conf, ARGS *args) {
 
   free(pWrap);
   conf->oroot[flen] = '\0';
+#endif
 
   /* Evaluate and save the best-fit model. */
   if (eval_model(conf, args)) {

@@ -71,6 +71,7 @@ typedef struct {
   char *fpnw;           /* PK_NOBAO_MATTER      */
   char **fpnwt;         /* PK_NOBAO_TRACER      */
   int num_nwt;          /* Number of non-wiggle tracer power spectra. */
+  bool *has_nwt;        /* Indicate if non-wiggle tracer power spectra exist. */
   double knorm;         /* K_NORM               */
   double kmin;          /* K_MIN                */
   double kmax;          /* K_MAX                */

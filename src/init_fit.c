@@ -50,6 +50,7 @@ static ARGS *init_args(const CONF *conf) {
 
   args->num_B = conf->num_B;
   args->nxi = conf->ninput;
+  args->has_nwt = conf->has_nwt;
   args->ns = (size_t) conf->ns;
   args->npoly = conf->npoly;
   args->pcen = conf->pcen_B;
@@ -437,8 +438,8 @@ static int init_pk(const CONF *conf, ARGS *args) {
     }
     int j = 0;
     for (int i = 0; i < args->nxi; i++) {
-      if (conf->fpnwt[i] && *(conf->fpnwt[i])) {
-        args->Pnwt[i] = args->Pnwt[i] + j * args->nk;
+      if (args->has_nwt[i]) {
+        args->Pnwt[i] = args->Pnwt[0] + j * args->nk;
         j += 1;
       }
     }
@@ -521,7 +522,7 @@ static int init_pk(const CONF *conf, ARGS *args) {
     cspline_ypp(knw, Pnw, nnw, ypp);
 
     for (int i = 0; i < args->nxi; i++) {
-      if (!(conf->fpnwt[i]) || !(*conf->fpnwt[i])) continue;
+      if (!args->has_nwt[i]) continue;
       double *kt, *Pt, *Pint;
       size_t nt;
       if (read_table(conf->fpnwt[i], conf->comment, 1, 2, 0, DBL_MAX,

@@ -397,6 +397,7 @@ static CONF *conf_init(void) {
   conf->val_Snl = conf->pmin_Snl = conf->pmax_Snl = NULL;
   conf->fconf = conf->fcov = conf->fplin = conf->fpnw = conf->Bfit = NULL;
   conf->oroot = NULL;
+  conf->has_nwt = NULL;
   return conf;
 }
 
@@ -896,6 +897,10 @@ static int conf_verify(const cfg_t *cfg, CONF *conf) {
 
   /* PK_NOBAO_TRACER */
   conf->num_nwt = 0;
+  if (!(conf->has_nwt = calloc(conf->ninput, sizeof(bool)))) {
+    P_ERR("failed to allocate memory for non-wiggle tracer power spectra\n");
+    return BAOFLIT_ERR_MEMORY;
+  }
   if ((num = cfg_get_size(cfg, &conf->fpnwt))) {
     CHECK_STR_ARRAY_LENGTH(PK_NOBAO_TRACER, cfg, conf->fpnwt, num,
         conf->ninput);
@@ -907,6 +912,7 @@ static int conf_verify(const cfg_t *cfg, CONF *conf) {
         *fname = '\0';
       else if (*fname) {
         if ((e = check_input(fname, "PK_NOBAO_TRACER"))) return e;
+        conf->has_nwt[i] = true;
         conf->num_nwt += 1;
       }
     }
@@ -1273,6 +1279,7 @@ void conf_destroy(CONF *conf) {
   FREE_ARRAY(conf->fplin);
   FREE_ARRAY(conf->fpnw);
   FREE_STR_ARRAY(conf->fpnwt);
+  FREE_ARRAY(conf->has_nwt);
   FREE_ARRAY(conf->oroot);
   free(conf);
 }
