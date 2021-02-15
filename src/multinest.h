@@ -48,7 +48,6 @@ void run(int IS, int mmodal, int ceff, int nlive, double tol, double efr,
     void (*dumper)(int *, int *, int *, double **, double **, double **,
         double *, double *, double *, double *, void *),
     void *context) {
-  for (size_t i = strlen(root); i < BAOFLIT_MN_FNAME_LEN; i++) root[i] = ' ';
   NESTRUN(&IS, &mmodal, &ceff, &nlive, &tol, &efr, &ndims, &nPar, &nClsPar,
       &maxModes, &updInt, &Ztol, root, &seed, pWrap, &fb, &resume, &outfile,
       &initMPI, &logZero, &maxiter, LogLike, dumper, context);

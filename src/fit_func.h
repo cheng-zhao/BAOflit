@@ -45,6 +45,6 @@ Arguments:
   * `conf`:     the structure for storing configurations;
   * `fit`:      the structure for storing information for the fit.
 ******************************************************************************/
-void run_multinest(const CONF *conf, ARGS *args);
+void run_multinest(CONF *conf, ARGS *args);
 
 #endif

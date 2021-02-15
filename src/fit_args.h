@@ -59,7 +59,8 @@ typedef struct {
   const double *psig;   /* sigma of Gaussian priors for the bias parameters  */
   int *idx_B;           /* indices of bias parameters for the fitted 2PCFs   */
   bool fit_Snl;         /* indicate whether fitting Sigma_nl                 */
-  double *pbest;        /* best-fit parameters                               */
+  double *pmodel;       /* mean/best-fit/MAP fitting parameters              */
+  double *amodel;       /* mean/best-fit/MAP nuisance parameters             */
   double maxlnlike;     /* maximum log-likelihood                            */
 
   double *data;         /* the data vector                                   */

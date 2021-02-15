@@ -66,7 +66,8 @@ int save_param(const CONF *conf);
 Function `save_table`:
   Save a table to a text file.
 Arguments:
-  * `fname`:    output filename;
+  * `bname`:    basename of the output file;
+  * `suffix`:   suffix of the output filename;
   * `x`:        the first column of the table;
   * `y`:        the second column of the table;
   * `n` :       number of rows to be saved;
@@ -75,7 +76,7 @@ Arguments:
 Return:
   Zero on success; non-zero on error.
 ******************************************************************************/
-int save_table(const char *fname, const double *x, const double *y,
-    const size_t n, const size_t *idx, const int nidx);
+int save_table(char *bname, const char *suffix, const double *x,
+    const double *y, const size_t n, const size_t *idx, const int nidx);
 
 #endif

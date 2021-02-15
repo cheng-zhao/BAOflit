@@ -39,7 +39,7 @@ Return:
 static ARGS *init_args(const CONF *conf) {
   ARGS *args = calloc(1, sizeof *args);
 
-  args->pmin = args->pmax = args->pbest = NULL;
+  args->pmin = args->pmax = args->pmodel = args->amodel = NULL;
   args->data = args->s = args->Rcov = NULL;
   args->idata = args->edata = NULL;
   args->k = args->fac = args->halfk2 = args->PBAO = args->Pnw = args->Pm = NULL;
@@ -108,8 +108,8 @@ static int init_param(const CONF *conf, ARGS *args) {
   args->pmin = malloc(sizeof(double) * npar);
   args->pmax = malloc(sizeof(double) * npar);
   args->idx_B = malloc(sizeof(double) * conf->ninput * 2);
-  args->pbest = malloc(sizeof(double) * npar);
-  if (!args->pmin || !args->pmax || !args->idx_B || !args->pbest) {
+  args->pmodel = malloc(sizeof(double) * npar * 3);
+  if (!args->pmin || !args->pmax || !args->idx_B || !args->pmodel) {
     P_ERR("failed to allocate memory for the fitting parameters\n");
     return BAOFLIT_ERR_MEMORY;
   }
@@ -687,9 +687,10 @@ static int init_least_squared(const CONF *conf, ARGS *args) {
   size_t ntot = (size_t) args->npoly * (size_t) args->nxi;
   /* Allocate memory. */
   args->apoly = malloc(sizeof(double) * ntot);
+  args->amodel = malloc(sizeof(double) * ntot * 3);
   args->basis = calloc(args->nbin * ntot, sizeof(double));
   args->LS_Z = malloc(sizeof(double) * args->nbin * ntot);
-  if (!args->apoly || !args->basis || !args->LS_Z) {
+  if (!args->apoly || !args->amodel || !args->basis || !args->LS_Z) {
     P_ERR("failed to allocate memory for least-squared fitting\n");
     return BAOFLIT_ERR_MEMORY;
   }
@@ -798,7 +799,8 @@ void args_destroy(ARGS *args) {
   if (args->pmin) free(args->pmin);
   if (args->pmax) free(args->pmax);
   if (args->idx_B) free(args->idx_B);
-  if (args->pbest) free(args->pbest);
+  if (args->pmodel) free(args->pmodel);
+  if (args->amodel) free(args->amodel);
 
   if (args->data) free(args->data);
   if (args->s) free(args->s);

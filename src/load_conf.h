@@ -94,7 +94,6 @@ typedef struct {
   bool resume;          /* RESUME               */
 
   char *oroot;          /* OUTPUT_ROOT          */
-  char *fbest;          /* BEST_FIT             */
   bool verbose;         /* VERBOSE              */
 } CONF;
 

@@ -139,70 +139,83 @@ static double chi_squared(const double *par, ARGS *args) {
 }
 
 /******************************************************************************
-Function `best_fit`:
-  Compute the best-fit multipoles given a set of parameters.
+Function `eval_model`:
+  Compute the model 2PCFs given the fitting parameters.
 Arguments:
   * `conf`:     structure for storing configuration parameters;
   * `args`:     structure for storing fitting arguments.
 Return:
   Zero on success; non-zero on error.
 ******************************************************************************/
-static int best_fit(const CONF *conf, ARGS *args) {
-  if (args->fit_Snl) xi_template(args->pbest + 1 + args->num_B, args);
-  xi_residual(args->pbest, args);
-  if (args->npoly) least_square_fit(args);
-
+static int eval_model(CONF *conf, ARGS *args) {
   /* Allocate memory for the best-fit 2PCFs. */
   double *s = malloc(sizeof(double) * args->ns * args->nxi);
   if (!s) {
-    P_ERR("failed to allocate memory for the best-fit 2PCFs\n");
+    P_ERR("failed to allocate memory for the model 2PCFs\n");
     return BAOFLIT_ERR_MEMORY;
   }
   double *xi = malloc(sizeof(double) * args->ns * args->nxi);
   if (!xi) {
-    P_ERR("failed to allocate memory for the best-fit 2PCFs\n");
+    P_ERR("failed to allocate memory for the model 2PCFs\n");
     free(s);
     return BAOFLIT_ERR_MEMORY;
   }
   size_t *idx = malloc(sizeof(size_t) * args->nxi);
   if (!idx) {
-    P_ERR("failed to allocate memory for the best-fit 2PCFs\n");
+    P_ERR("failed to allocate memory for the model 2PCFs\n");
+    free(s); free(xi);
+    return BAOFLIT_ERR_MEMORY;
   }
+  const char *bname[3] =
+      {"model_mean.dat", "model_maxlike.dat", "model_map.dat"};
+  size_t ntot = (size_t) args->npoly * (size_t) args->nxi;
 
-  /* Recover the model 2PCFs. */
-  size_t len = 0;
-  for (int k = 0; k < args->nxi; k++) {
-    idx[k] = len;
-    double *sb = s + len;
-    double *xib = xi + len;
-    size_t ns = 0;
-    /* Define the shifted abscissas. */
-    for (size_t i = 0; i < args->ns; i++) {
-      double ss = args->st[i] * args->pbest[0];
-      if (ss < conf->fitmin[k]) continue;
-      if (ss > conf->fitmax[k]) break;
-      sb[ns++] = ss;
+  /* Evaluate the mean/best-fit/maximum-a-posteriori parameters in order. */
+  for (int mid = 0; mid < 3; mid++) {
+    double *pbest = args->pmodel + mid * args->npar;
+    /* Perform the fit. */
+    if (args->fit_Snl) xi_template(pbest + 1 + args->num_B, args);
+    xi_residual(pbest, args);
+    if (args->npoly) {
+      least_square_fit(args);
+      memcpy(args->amodel + ntot * mid, args->apoly, sizeof(double) * ntot);
     }
-    /* Interpolate the template 2PCFs. */
-    cspline_eval_array(args->st, args->xit[k], args->xipp[k], args->ns,
-        sb, xib, ns);
-    /* Compute the model 2PCFs. */
-    int i1 = args->idx_B[(k << 1)];
-    int i2 = args->idx_B[(k << 1) + 1];
-    double B1 = (i1 >= 0) ? args->pbest[i1 + 1] : BAOFLIT_DEFAULT_BIAS;
-    double B2 = (i2 >= 0) ? args->pbest[i2 + 1] : BAOFLIT_DEFAULT_BIAS;
-    for (size_t i = 0; i < ns; i++) {
-      xib[i] *= B1 * B2;
-      for (int j = 0; j < args->npoly; j++)
-        xib[i] += args->apoly[j + k * args->npoly] * pow(sb[i], j - 2);
-    }
-    len += ns;
-  }
 
-  /* Save the best-fit model 2PCFs. */
-  if (save_table(conf->fbest, s, xi, len, idx, args->nxi)) {
-    free(s); free(xi); free(idx);
-    return BAOFLIT_ERR_FILE;
+    /* Recover the model 2PCFs. */
+    size_t len = 0;
+    for (int k = 0; k < args->nxi; k++) {
+      idx[k] = len;
+      double *sb = s + len;
+      double *xib = xi + len;
+      size_t ns = 0;
+      /* Define the shifted abscissas. */
+      for (size_t i = 0; i < args->ns; i++) {
+        double ss = args->st[i] * pbest[0];
+        if (ss < conf->fitmin[k]) continue;
+        if (ss > conf->fitmax[k]) break;
+        sb[ns++] = ss;
+      }
+      /* Interpolate the template 2PCFs. */
+      cspline_eval_array(args->st, args->xit[k], args->xipp[k], args->ns,
+          sb, xib, ns);
+      /* Compute the model 2PCFs. */
+      int i1 = args->idx_B[(k << 1)];
+      int i2 = args->idx_B[(k << 1) + 1];
+      double B1 = (i1 >= 0) ? pbest[i1 + 1] : BAOFLIT_DEFAULT_BIAS;
+      double B2 = (i2 >= 0) ? pbest[i2 + 1] : BAOFLIT_DEFAULT_BIAS;
+      for (size_t i = 0; i < ns; i++) {
+        xib[i] *= B1 * B2;
+        for (int j = 0; j < args->npoly; j++)
+          xib[i] += args->apoly[j + k * args->npoly] * pow(sb[i], j - 2);
+      }
+      len += ns;
+    }
+
+    /* Save the best-fit model 2PCFs. */
+    if (save_table(conf->oroot, bname[mid], s, xi, len, idx, args->nxi)) {
+      free(s); free(xi); free(idx);
+      return BAOFLIT_ERR_FILE;
+    }
   }
 
   free(s);
@@ -271,9 +284,11 @@ static void dumper(int *nsample, int *nlive, int *npar, double **physlive,
   (void) logZ;
   (void) INSlogZ;
   (void) logZerr;
-  /* Record the best-fit parameters and maximum log likelihood. */
+  /* Record the mean/best-fit/MAP parameters and maximum log likelihood. */
   ARGS *args = (ARGS *) context;
-  memcpy(args->pbest, parinfo[0] + 3 * (*npar), sizeof(double) * (*npar));
+  memcpy(args->pmodel, parinfo[0], sizeof(double) * (*npar));
+  memcpy(args->pmodel + (*npar), parinfo[0] + 2 * (*npar),
+      sizeof(double) * 2 * (*npar));
   args->maxlnlike = *maxlike;
 }
 
@@ -284,7 +299,7 @@ Arguments:
   * `conf`:     the structure for storing configurations;
   * `fit`:      the structure for storing information for the fit.
 ******************************************************************************/
-void run_multinest(const CONF *conf, ARGS *args) {
+void run_multinest(CONF *conf, ARGS *args) {
   printf("Running BAO fit using MultiNest ...");
   if (conf->verbose) printf("\n");
   fflush(stdout);
@@ -315,34 +330,46 @@ void run_multinest(const CONF *conf, ARGS *args) {
   /* The template 2PCFs can be pre-computed if Sigma_nl values are fixed. */
   if (!args->fit_Snl) xi_template(conf->val_Snl, args);
 
+  /* Pre-process the filename to be accessed by fortran. */
+  size_t flen = strlen(conf->oroot);
+  for (size_t i = flen; i < BAOFLIT_MN_FNAME_LEN; i++) conf->oroot[i] = ' ';
+
   /* Run the MultiNest fit. */
   run(IS, mmodal, ceff, nlive, tol, efr, ndims, nPar, nClsPar, maxModes,
         updInt, Ztol, conf->oroot, seed, pWrap, fb, resume, outfile, initMPI,
         logZero, maxiter, log_like, dumper, args);
 
+  conf->oroot[flen] = '\0';
   /* Evaluate and save the best-fit model. */
-  if (best_fit(conf, args)) {
+  if (eval_model(conf, args)) {
     P_WRN("failed to evaluate or save the best-fit model\n");
     return;
   }
 
   if (conf->verbose) {
-    printf("  Best-fit parameters:\n    alpha: " OFMT_DBL "\n    bias:",
-        args->pbest[0]);
-    for (int i = 0; i < args->num_B; i++)
-      printf(" " OFMT_DBL, args->pbest[i + 1]);
+    const char *ptype[3] =
+        {"Mean values of the", "Maximum-likelihood", "Maximum-a-posteriori"};
+    for (int mid = 0; mid < 3; mid++) {
+      double *pbest = args->pmodel + mid * args->npar;
+      printf("  %s parameters:\n    alpha: " OFMT_DBL "\n    bias:",
+          ptype[mid], pbest[0]);
+      for (int i = 0; i < args->num_B; i++)
+        printf(" " OFMT_DBL, pbest[i + 1]);
 
-    if (args->fit_Snl) {
-      printf("\n    Sigma_nl:");
-      for (int i = 0; i < args->nxi; i++)
-        printf(" " OFMT_DBL, args->pbest[1 + args->num_B + i]);
+      if (args->fit_Snl) {
+        printf("\n    Sigma_nl:");
+        for (int i = 0; i < args->nxi; i++)
+          printf(" " OFMT_DBL, pbest[1 + args->num_B + i]);
+      }
+      if (args->npoly) {
+        printf("\n    Nuisance parameters:");
+        size_t ntot = (size_t) args->npoly * (size_t) args->nxi;
+        for (size_t i = 0; i < ntot; i++)
+          printf(" " OFMT_DBL, args->amodel[ntot * mid + i]);
+      }
+      printf("\n");
     }
-    if (args->npoly) {
-      printf("\n    Nuisance parameters:");
-      size_t ntot = (size_t) args->npoly * (size_t) args->nxi;
-      for (size_t i = 0; i < ntot; i++) printf(" " OFMT_DBL, args->apoly[i]);
-    }
-    printf("\n  Minimum chi-squared: " OFMT_DBL "\n", -2 * args->maxlnlike);
+    printf("  Minimum chi-squared: " OFMT_DBL "\n", -2 * args->maxlnlike);
   }
 
   printf(FMT_DONE);

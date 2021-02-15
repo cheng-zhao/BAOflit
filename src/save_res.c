@@ -146,7 +146,8 @@ int save_param(const CONF *conf) {
 Function `save_table`:
   Save a table to a text file.
 Arguments:
-  * `fname`:    output filename;
+  * `bname`:    basename of the output file;
+  * `suffix`:   suffix of the output filename;
   * `x`:        the first column of the table;
   * `y`:        the second column of the table;
   * `n` :       number of rows to be saved;
@@ -155,16 +156,29 @@ Arguments:
 Return:
   Zero on success; non-zero on error.
 ******************************************************************************/
-int save_table(const char *fname, const double *x, const double *y,
-    const size_t n, const size_t *idx, const int nidx) {
-  if (!fname || !(*fname) || !x || !y || !n) {
+int save_table(char *bname, const char *suffix, const double *x,
+    const double *y, const size_t n, const size_t *idx, const int nidx) {
+  if (!bname || !(*bname) || !suffix || !(*suffix) || !x || !y || !n) {
     P_ERR("the table to be saved is not initialised\n");
     return BAOFLIT_ERR_ARG;
   }
 
-  FILE *fp = fopen(fname, "w");
+  size_t slen = strlen(suffix);
+  if (slen >= BAOFLIT_MN_SUFF_MAX) {
+    P_ERR("suffix of the output file is too long: `%s'\n", suffix);
+    return BAOFLIT_ERR_ARG;
+  }
+  size_t blen = strlen(bname);
+  if (blen + slen >= BAOFLIT_MN_FNAME_LEN) {
+    P_ERR("the output file name is too long: `%s%s'\n", bname, suffix);
+    return BAOFLIT_ERR_ARG;
+  }
+  memcpy(bname + blen, suffix, slen);
+  bname[blen + slen] = '\0';
+
+  FILE *fp = fopen(bname, "w");
   if (!fp) {
-    P_ERR("failed to open file for writing: `%s'\n", fname);
+    P_ERR("failed to open file for writing: `%s'\n", bname);
     return BAOFLIT_ERR_FILE;
   }
 
@@ -178,6 +192,8 @@ int save_table(const char *fname, const double *x, const double *y,
   for (size_t i = 0; i < n; i++)
     fprintf(fp, OFMT_DBL " " OFMT_DBL "\n", x[i], y[i]);
 
-  if (fclose(fp)) P_WRN("failed to close file: `%s'\n", fname);
+  if (fclose(fp)) P_WRN("failed to close file: `%s'\n", bname);
+
+  bname[blen] = '\0';
   return 0;
 }

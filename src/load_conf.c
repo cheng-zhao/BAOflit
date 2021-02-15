@@ -182,8 +182,6 @@ Perform multi-tracer BAO fit with the MultiNest sampler.\n\
         Indicate whether to resume the previous MultiNest run\n\
   -o, --output          " FMT_KEY(OUTPUT_ROOT) "     String\n\
         Set the basename of outputs\n\
-  -b, --best-fit        " FMT_KEY(BEST_FIT) "\n\
-        Set the output file of the best-fit model 2PCFs\n\
   -v, --verbose         " FMT_KEY(VERBOSE) "         Boolean\n\
         Indicate whether to display detailed standard outputs\n\
 Consult the -t option for more information on the parameters\n\
@@ -370,8 +368,6 @@ RESUME          = \n\
 \n\
 OUTPUT_ROOT     = \n\
     # String, basename of the outputs to be written by multinest.\n\
-BEST_FIT        = \n\
-    # String, filename for saving the best-fit model 2PCFs.\n\
 VERBOSE         = \n\
     # Boolean option, indicate whether to show detailed outputs (unset: %c).\n",
       DEFAULT_COMMENT ? DEFAULT_COMMENT : '\'', DEFAULT_COMMENT ? "')" : ")",
@@ -400,7 +396,7 @@ static CONF *conf_init(void) {
   conf->pmin_B = conf->pmax_B = conf->pcen_B = conf->psig_B = NULL;
   conf->val_Snl = conf->pmin_Snl = conf->pmax_Snl = NULL;
   conf->fconf = conf->fcov = conf->fplin = conf->fpnw = conf->Bfit = NULL;
-  conf->oroot = conf->fbest = NULL;
+  conf->oroot = NULL;
   return conf;
 }
 
@@ -478,7 +474,6 @@ static cfg_t *conf_read(CONF *conf, const int argc, char *const *argv) {
     {'e', "tolerance"   , "TOLERANCE"      , CFG_DTYPE_DBL , &conf->tol     },
     {'r', "resume"      , "RESUME"         , CFG_DTYPE_BOOL, &conf->resume  },
     {'o', "output"      , "OUTPUT_ROOT"    , CFG_DTYPE_STR , &conf->oroot   },
-    {'b', "best-fit"    , "BEST_FIT"       , CFG_DTYPE_STR , &conf->fbest   },
     {'v', "verbose"     , "VERBOSE"        , CFG_DTYPE_BOOL, &conf->verbose }
   };
 
@@ -1049,10 +1044,6 @@ static int conf_verify(const cfg_t *cfg, CONF *conf) {
     conf->oroot = tmp;
   }
 
-  /* BEST_FIT */
-  CHECK_EXIST_PARAM(BEST_FIT, cfg, &conf->fbest);
-  if ((e = check_outdir(conf->fbest, "BEST_FIT"))) return e;
-
   /* VERBOSE */
   if (!cfg_is_set(cfg, &conf->verbose)) conf->verbose = DEFAULT_VERBOSE;
 
@@ -1208,7 +1199,6 @@ static void conf_print(const CONF *conf) {
 
   /* Outputs. */
   printf("\n  OUTPUT_ROOT     = %s", conf->oroot);
-  printf("\n  BEST_FIT        = %s\n", conf->fbest);
 }
 
 
@@ -1284,6 +1274,5 @@ void conf_destroy(CONF *conf) {
   FREE_ARRAY(conf->fpnw);
   FREE_STR_ARRAY(conf->fpnwt);
   FREE_ARRAY(conf->oroot);
-  FREE_ARRAY(conf->fbest);
   free(conf);
 }
