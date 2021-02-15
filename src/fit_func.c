@@ -334,6 +334,8 @@ void run_multinest(CONF *conf, ARGS *args) {
   args->pmodel[3] = 7.5;
   args->pmodel[4] = 5.9;
   args->pmodel[5] = 6.4;
+
+  args->maxlnlike = -0.5 * chi_squared(args->pmodel, args);
 #else
   /* Pre-process the filename to be accessed by fortran. */
   size_t flen = strlen(conf->oroot);
