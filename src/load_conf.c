@@ -987,7 +987,7 @@ static int conf_verify(const cfg_t *cfg, CONF *conf) {
     return BAOFLIT_ERR_CFG;
   }
   double smax = conf->smin;
-  conf->ns = 0;
+  conf->ns = 1;
   while (smax < conf->smax - DOUBLE_TOL) {
     smax += conf->ds;
     if (++conf->ns > BAOFLIT_MAX_SEP_BIN) {
