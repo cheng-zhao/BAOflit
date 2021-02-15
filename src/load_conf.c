@@ -306,7 +306,7 @@ PK_NOBAO_TRACER = \n\
     # It is used for modelling scale-dependent bias of tracers, see\n\
     # Zhao et al. in preparation.\n\
     # Leave it unset to disable the tracer bias model for all data, or set an\n\
-    # empty string ("") to disable the model for a given 2PCF in `DATA_FILE`.\n\
+    # empty string (\"\") to disable the model for a given 2PCF in `DATA_FILE`.\n\
     # See also Variu et al. in preparation.\n\
 K_NORM          = \n\
     # The non-wiggle power spectra are normalised below this k value.\n\
