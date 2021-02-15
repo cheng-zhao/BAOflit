@@ -948,7 +948,11 @@ static int conf_verify(const cfg_t *cfg, CONF *conf) {
       }
       break;
     case PK_INT_LEGAUSS:
+      P_ERR("Gaussian quadrature is currently not available\n"
+          "Please set " FMT_KEY(PK_INT_METHOD) " to %d\n", PK_INT_TRAPZ);
+      return BAOFLIT_ERR_CFG;
       /* LEGAUSS_ORDER */
+      /*
       CHECK_EXIST_PARAM(LEGAUSS_ORDER, cfg, &conf->lgorder);
       if (conf->lgorder < LEGAUSS_MIN_ORDER ||
           conf->lgorder > LEGAUSS_MAX_ORDER) {
@@ -957,6 +961,7 @@ static int conf_verify(const cfg_t *cfg, CONF *conf) {
         return BAOFLIT_ERR_CFG;
       }
       break;
+      */
     default:
       P_ERR("invalid" FMT_KEY(PK_INT_METHOD) ": %d\n", conf->pkint);
       return BAOFLIT_ERR_CFG;
@@ -1089,6 +1094,9 @@ static void conf_print(const CONF *conf) {
 
   if (conf->comp_cov) {
     if (conf->fcov) printf("\n  COV_FILE        = <W> %s", conf->fcov);
+    printf("\n  MOCK_LIST       = %s", conf->fmock[0]);
+    for (int i = 1; i < conf->ninput; i++)
+      printf("\n                    %s", conf->fmock[i]);
     printf("\n  MOCK_SEP_COL    = %d", conf->mscol[0]);
     for (int i = 1; i < conf->ninput; i++) printf(" , %d", conf->mscol[i]);
     printf("\n  MOCK_XI_COL     = %d", conf->mxicol[0]);
@@ -1156,7 +1164,7 @@ static void conf_print(const CONF *conf) {
   if (conf->fpnw) printf("\n  PK_NOBAO_MATTER = %s", conf->fpnw);
   if (conf->fpnwt) {
     printf("\n  PK_NOBAO_TRACER = %s", conf->fpnwt[0]);
-    for (int i = 0; i < conf->ninput; i++) {
+    for (int i = 1; i < conf->ninput; i++) {
       if (*conf->fpnwt[i]) printf("\n                    %s", conf->fpnwt[i]);
       else printf("\n                    \"\"");
     }

@@ -50,11 +50,11 @@
 #define BAOFLIT_MN_MMODAL       0       /* do mode separation?               */
 #define BAOFLIT_MN_CEFF         0       /* run in constant efficiency mode?  */
 #define BAOFLIT_MN_EFR          1       /* required efficiency               */
-#define BAOFLIT_MN_UPD          1000    /* no. of iterations between updates */
+#define BAOFLIT_MN_UPD          2000    /* no. of iterations between updates */
 #define BAOFLIT_MN_ZTOL         -1e90   /* threshold for ignoring logZ       */
 #define BAOFLIT_MN_MAXMODE      100     /* maximum number of modes           */
 #define BAOFLIT_MN_SEED         100     /* random seed for MultiNest         */
-#define BAOFLIT_MN_STDOUT       1       /* feedback on standard output?      */
+#define BAOFLIT_MN_STDOUT       0       /* feedback on standard output?      */
 #define BAOFLIT_MN_INITMPI      0       /* initialise MPI routines?          */
 #define BAOFLIT_MN_LOGZERO     -DBL_MAX /* threshold for ignoring loglike    */
 #define BAOFLIT_MN_MAXIT        0       /* maximum number of iterations      */

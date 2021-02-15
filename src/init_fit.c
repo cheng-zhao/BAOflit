@@ -458,34 +458,21 @@ static int init_pk(const CONF *conf, ARGS *args) {
     return BAOFLIT_ERR_INIT;
   }
 
-  if (conf->fpnw) {     /* read the non-wiggle matter power spectrum */
-    double *knw, *Pnw;
-    size_t nnw;
+  /* Obtain the linear non-wiggle matter power spectrum. */
+  double *knw, *Pnw;
+  knw = Pnw = NULL;
+  size_t nnw = 0;
+  if (conf->fpnw) {     /* read from file */
     if (read_table(conf->fpnw, conf->comment, 1, 2, 0, DBL_MAX, &knw, &Pnw,
         &nnw)) {
       free(lnk); free(fac); free(klin); free(Plin);
       return BAOFLIT_ERR_INIT;
     }
-
-    /* Normalise the non-wiggle matter power spectrum. */
-    if (pk_norm(klin, Plin, nlin, knw, Pnw, nnw, conf->knorm)) {
-      free(lnk); free(fac); free(klin); free(Plin); free(knw); free(Pnw);
-      return BAOFLIT_ERR_INIT;
-    }
-
-    /* Interpolate the non-wiggle matter power spectrum. */
-    if (pk_interp(knw, Pnw, nnw, lnk, args->Pnw, args->nk)) {
-      free(lnk); free(fac); free(klin); free(Plin); free(knw); free(Pnw);
-      return BAOFLIT_ERR_INIT;
-    }
-    free(knw);
-    free(Pnw);
   }
-  else {                /* compute the non-wiggle matter power spectrum */
-    double *knw, *Pnw;
-    knw = Pnw = NULL;
-    knw = malloc(sizeof(double) * nlin);
-    Pnw = malloc(sizeof(double) * nlin);
+  else {                /* compute using the Eisentein & Hu (1998) formulae */
+    nnw = nlin;
+    knw = malloc(sizeof(double) * nnw);
+    Pnw = malloc(sizeof(double) * nnw);
     if (!knw || !Pnw) {
       P_ERR("failed to allocate memory for the linear non-wiggle "
           "matter power spectrum\n");
@@ -494,28 +481,27 @@ static int init_pk(const CONF *conf, ARGS *args) {
       if (Pnw) free(Pnw);
       return BAOFLIT_ERR_MEMORY;
     }
+    memcpy(knw, klin, sizeof(double) * nlin);
     pk_nw_EH(klin, nlin, conf->hubble, conf->omega_m, conf->omega_b,
         conf->Tcmb, conf->pkns, Pnw);
+  }
 
-    /* Normalise the non-wiggle matter power spectrum. */
-    if (pk_norm(klin, Plin, nlin, klin, Pnw, nlin, conf->knorm)) {
-      free(lnk); free(fac); free(klin); free(Plin); free(knw); free(Pnw);
-      return BAOFLIT_ERR_INIT;
-    }
+  /* Normalise the linear non-wiggle matter power spectrum. */
+  if (pk_norm(klin, Plin, nlin, knw, Pnw, nnw, conf->knorm)) {
+    free(lnk); free(fac); free(klin); free(Plin); free(knw); free(Pnw);
+    return BAOFLIT_ERR_INIT;
+  }
 
-    /* Interpolate the non-wiggle matter power spectrum. */
-    memcpy(knw, klin, sizeof(double) * nlin);
-    if (pk_interp(knw, Pnw, nlin, lnk, args->Pnw, args->nk)) {
-      free(lnk); free(fac); free(klin); free(Plin); free(knw); free(Pnw);
-      return BAOFLIT_ERR_INIT;
-    }
-    free(knw);
-    free(Pnw);
+  /* Interpolate the linear non-wiggle matter power spectrum.
+     Note that knw and Pnw become log(knw) and log(Pnw) now.*/
+  if (pk_interp(knw, Pnw, nnw, lnk, args->Pnw, args->nk)) {
+    free(lnk); free(fac); free(klin); free(Plin); free(knw); free(Pnw);
+    return BAOFLIT_ERR_INIT;
   }
 
   /* Interpolate the linear matter power spectrum with wiggles. */
   if (pk_interp(klin, Plin, nlin, lnk, args->PBAO, args->nk)) {
-    free(lnk); free(fac); free(klin); free(Plin);
+    free(lnk); free(fac); free(klin); free(Plin); free(knw); free(Pnw);
     return BAOFLIT_ERR_INIT;
   }
   free(klin);
@@ -524,28 +510,88 @@ static int init_pk(const CONF *conf, ARGS *args) {
 
   /* Read linear non-wiggle tracer power spectrum. */
   if (conf->num_nwt) {
+    /* Prepare for interpolating the linear non-wiggle matter power spectrum. */
+    double *ypp = malloc(sizeof(double) * nnw * 2);
+    if (!ypp) {
+      P_ERR("failed to allocate memory for interpolating the non-wiggle "
+          "tracer power spectrum\n");
+      free(lnk); free(fac); free(knw); free(Pnw);
+      return BAOFLIT_ERR_MEMORY;
+    }
+    cspline_ypp(knw, Pnw, nnw, ypp);
+
     for (int i = 0; i < args->nxi; i++) {
       if (!(conf->fpnwt[i]) || !(*conf->fpnwt[i])) continue;
-      double *kt, *Pt;
+      double *kt, *Pt, *Pint;
       size_t nt;
       if (read_table(conf->fpnwt[i], conf->comment, 1, 2, 0, DBL_MAX,
           &kt, &Pt, &nt)) {
-        free(lnk); free(fac);
+        free(lnk); free(fac); free(knw); free(Pnw); free(ypp);
         return BAOFLIT_ERR_INIT;
       }
 
-      /* Interpolate the linear non-wiggle tracer power spectrum. */
-      if (pk_interp(kt, Pt, nt, lnk, args->Pnwt[i], args->nk)) {
-        free(lnk); free(fac); free(kt); free(Pt);
+      /* Interpolate the non-wiggle matter power spectrum, to measure
+         P_{tracer,nw}(k) / P_{lin,nw}(k). */
+      size_t istart, ninterp;
+      istart = ninterp = 0;
+      for (size_t j = 0; j < nt; j++) {
+        kt[j] = log(kt[j]);
+        if (kt[j] >= knw[nnw - 1]) break;
+        if (kt[j] >= knw[0]) {
+          if (!ninterp) istart = j;
+          ninterp++;
+        }
+      }
+      if (!ninterp) {
+        P_ERR("too few sample points for the non-wiggle tracer power spectrum:"
+            " `%s'\n", conf->fpnwt[i]);
+        free(lnk); free(fac); free(knw); free(Pnw); free(ypp);
+        free(kt); free(Pt);
         return BAOFLIT_ERR_INIT;
       }
-      free(kt);
-      free(Pt);
+      if (!(Pint = malloc(sizeof(double) * ninterp))) {
+        P_ERR("failed to allocate memory for interpolating the non-wiggle "
+            "tracer power spectrum\n");
+        free(lnk); free(fac); free(knw); free(Pnw); free(ypp);
+        free(kt); free(Pt);
+        return BAOFLIT_ERR_MEMORY;
+      }
+      if (cspline_eval_array(knw, Pnw, ypp, nnw, kt + istart, Pint, ninterp)) {
+        P_ERR("failed to interpolate the non-wiggle tracer power spectrum\n");
+        free(lnk); free(fac); free(knw); free(Pnw); free(ypp);
+        free(kt); free(Pt); free(Pint);
+        return BAOFLIT_ERR_INIT;
+      }
 
-      /* Compute the ratio between the tracer and matter power spectra. */
-      for (size_t j = 0; j < args->nk; j++) args->Pnwt[i][j] /= args->Pnw[j];
+      /* Now compute P_{tracer,nw}(k) / P_{lin,nw}(k). */
+      for (size_t j = 0; j < ninterp; j++) Pt[istart + j] /= exp(Pint[j]);
+      free(Pint);
+
+      /* Interpolate P_{tracer,nw}(k) / P_{lin,nw}(k). */
+      double *Ptpp = malloc(sizeof(double) * ninterp * 2);
+      if (!Ptpp) {
+        P_ERR("failed to allocate memory for interpolating the non-wiggle "
+            "tracer power spectrum\n");
+        free(lnk); free(fac); free(knw); free(Pnw); free(ypp);
+        free(kt); free(Pt);
+        return BAOFLIT_ERR_MEMORY;
+      }
+      cspline_ypp(kt + istart, Pt + istart, ninterp, Ptpp);
+      if (cspline_eval_array(kt + istart, Pt + istart, Ptpp, ninterp,
+          lnk, args->Pnwt[i], args->nk)) {
+        free(lnk); free(fac); free(knw); free(Pnw); free(ypp);
+        free(kt); free(Pt); free(Ptpp);
+        return BAOFLIT_ERR_INIT;
+      }
+
+      free(kt); free(Pt); free(Ptpp);
     }
+
+    free(ypp);
   }
+
+  free(knw);
+  free(Pnw);
 
   /* Pre-compute terms related to k. */
   args->k = lnk;

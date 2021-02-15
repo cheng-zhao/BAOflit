@@ -262,6 +262,7 @@ Arguments:
 static void dumper(int *nsample, int *nlive, int *npar, double **physlive,
     double **poster, double **parinfo, double *maxlike, double *logZ,
     double *INSlogZ, double *logZerr, void *context) {
+  (void) nsample;
   (void) nlive;
   (void) npar;
   (void) physlive;
