@@ -53,8 +53,10 @@ static inline void xi_template(const double *par, ARGS *args) {
       size_t ioff = i * args->nk;
       for (size_t j = 0; j < args->nk; j++)
         args->xit[k][i] += args->Pm[j] * args->fac[ioff + j];
+      /* Compute (st^2 * xit) for interpolation. */
+      args->xit[k][i] *= args->st[i] * args->st[i];
     }
-    /* Compute the second derivative for interpolation. */
+    /* Compute the second derivative for interpolating (st^2 * xit). */
     cspline_ypp(args->st, args->xit[k], args->ns, args->xipp[k]);
   }
 }
@@ -82,7 +84,8 @@ static inline void xi_residual(const double *par, ARGS *args) {
     double B1 = (i1 >= 0) ? par[i1 + 1] : BAOFLIT_DEFAULT_BIAS;
     double B2 = (i2 >= 0) ? par[i2 + 1] : BAOFLIT_DEFAULT_BIAS;
     for (size_t i = args->idata[k]; i < args->edata[k]; i++)
-      args->xim[i] = args->data[i] - B1 * B2 * args->xim[i];
+      args->xim[i] = args->data[i]
+          - B1 * B2 * args->xim[i] / (args->sm[i] * args->sm[i]);
   }
 }
 
@@ -191,9 +194,13 @@ static int eval_model(CONF *conf, ARGS *args) {
       /* Define the shifted abscissas. */
       for (size_t i = 0; i < args->ns; i++) {
         double ss = args->st[i] * pbest[0];
-        if (ss < conf->fitmin[k]) continue;
-        if (ss > conf->fitmax[k]) break;
+        if (ss < conf->smin) continue;
+        if (ss >= conf->smax) break;
         sb[ns++] = ss;
+      }
+      if (ns == 0) {
+        P_WRN("the model is not available for `%s%s'\n", conf->oroot, bname[k]);
+        continue;
       }
       /* Interpolate the template 2PCFs. */
       cspline_eval_array(args->st, args->xit[k], args->xipp[k], args->ns,
@@ -204,7 +211,7 @@ static int eval_model(CONF *conf, ARGS *args) {
       double B1 = (i1 >= 0) ? pbest[i1 + 1] : BAOFLIT_DEFAULT_BIAS;
       double B2 = (i2 >= 0) ? pbest[i2 + 1] : BAOFLIT_DEFAULT_BIAS;
       for (size_t i = 0; i < ns; i++) {
-        xib[i] *= B1 * B2;
+        xib[i] *= B1 * B2 / (sb[i] * sb[i]);
         for (int j = 0; j < args->npoly; j++)
           xib[i] += args->apoly[j + k * args->npoly] * pow(sb[i], j - 2);
       }
@@ -339,7 +346,9 @@ void run_multinest(CONF *conf, ARGS *args) {
         updInt, Ztol, conf->oroot, seed, pWrap, fb, resume, outfile, initMPI,
         logZero, maxiter, log_like, dumper, args);
 
+  free(pWrap);
   conf->oroot[flen] = '\0';
+
   /* Evaluate and save the best-fit model. */
   if (eval_model(conf, args)) {
     P_WRN("failed to evaluate or save the best-fit model\n");
