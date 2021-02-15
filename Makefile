@@ -1,7 +1,7 @@
 CC = gcc
 FC = gfortran
 CFLAGS = -std=c99 -O3 -Wall
-FFLAGS = -ffree-line-length-none -O2
+FFLAGS = -ffree-line-length-none -O3
 
 MNDIR = MultiNest
 CLIBS = -lm -lnest3 -L$(MNDIR)

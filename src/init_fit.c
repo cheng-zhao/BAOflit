@@ -463,7 +463,7 @@ static int init_pk(const CONF *conf, ARGS *args) {
   double *knw, *Pnw;
   knw = Pnw = NULL;
   size_t nnw = 0;
-  if (conf->fpnw) {     /* read from file */
+  if (conf->fpnw && *conf->fpnw) {      /* read from file */
     if (read_table(conf->fpnw, conf->comment, 1, 2, 0, DBL_MAX, &knw, &Pnw,
         &nnw)) {
       free(lnk); free(fac); free(klin); free(Plin);

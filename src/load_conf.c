@@ -1192,11 +1192,13 @@ static void conf_print(const CONF *conf) {
   printf("\n  S_BIN_SIZE      = " OFMT_DBL, conf->ds);
 
   /* Cosmological parameters. */
-  printf("\n  HUBBLE          = " OFMT_DBL, conf->hubble);
-  printf("\n  OMEGA_M         = " OFMT_DBL, conf->omega_m);
-  printf("\n  OMEGA_B         = " OFMT_DBL, conf->omega_b);
-  printf("\n  CMB_TEMP        = " OFMT_DBL, conf->Tcmb);
-  printf("\n  PK_NS           = " OFMT_DBL, conf->pkns);
+  if (!conf->fpnw || !(*conf->fpnw)) {
+    printf("\n  HUBBLE          = " OFMT_DBL, conf->hubble);
+    printf("\n  OMEGA_M         = " OFMT_DBL, conf->omega_m);
+    printf("\n  OMEGA_B         = " OFMT_DBL, conf->omega_b);
+    printf("\n  CMB_TEMP        = " OFMT_DBL, conf->Tcmb);
+    printf("\n  PK_NS           = " OFMT_DBL, conf->pkns);
+  }
 
   /* Parameter inference. */
   printf("\n  NUM_LIVE        = %d", conf->nlive);
