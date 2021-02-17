@@ -44,7 +44,7 @@ static ARGS *init_args(const CONF *conf) {
   args->idata = args->edata = NULL;
   args->k = args->fac = args->halfk2 = args->PBAO = args->Pnw = args->Pm = NULL;
   args->Pnwt = args->xit = args->xipp = NULL;
-  args->st = args->sm = args->xim = NULL;
+  args->st = args->st2 = args->sm = args->xim = NULL;
   args->apoly = args->basis = args->LS_U = args->LS_Z = NULL;
   args->idx_B = NULL;
 
@@ -640,9 +640,10 @@ Return:
 static int init_xi(const CONF *conf, ARGS *args) {
   /* Allocate memory for the model 2PCFs. */
   args->st = malloc(sizeof(double) * args->ns);
+  args->st2 = malloc(sizeof(double) * args->ns);
   args->sm = malloc(sizeof(double) * args->nbin);
   args->xim = malloc(sizeof(double) * args->nbin);
-  if (!args->st || !args->sm || !args->xim) {
+  if (!args->st || !args->st2 || !args->sm || !args->xim) {
     P_ERR("failed to allocate memory for the model 2PCFs\n");
     return BAOFLIT_ERR_MEMORY;
   }
@@ -664,6 +665,7 @@ static int init_xi(const CONF *conf, ARGS *args) {
   /* Pre-compute values if applicable. */
   for (size_t i = 0; i < args->ns; i++) {
     args->st[i] = conf->smin + conf->ds * i;
+    args->st2[i] = args->st[i] * args->st[i];
     for (size_t j = 0; j < args->nk; j++) {
       args->fac[i * args->nk + j] *= sphbessel_j0(args->st[i] * args->k[j]);
     }
@@ -821,6 +823,7 @@ void args_destroy(ARGS *args) {
   if (args->Pm) free(args->Pm);
 
   if (args->st) free(args->st);
+  if (args->st2) free(args->st2);
   if (args->xit) {
     if (args->xit[0]) free(args->xit[0]);
     free(args->xit);

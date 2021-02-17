@@ -85,6 +85,7 @@ typedef struct {
 
   size_t ns;            /* number of separation bins for the template 2PCF   */
   double *st;           /* separations for the template 2PCFs                */
+  double *st2;          /* squared separations for the template 2PCFs        */
   double **xit;         /* template 2PCFs                                    */
   double **xipp;        /* second derivative of the 2PCFs for interpolation  */
   double *sm;           /* model separation bins shifted by alpha            */

@@ -54,7 +54,7 @@ static inline void xi_template(const double *par, ARGS *args) {
       for (size_t j = 0; j < args->nk; j++)
         args->xit[k][i] += args->Pm[j] * args->fac[ioff + j];
       /* Compute (st^2 * xit) for interpolation. */
-      args->xit[k][i] *= args->st[i] * args->st[i];
+      args->xit[k][i] *= args->st2[i];
     }
     /* Compute the second derivative for interpolating (st^2 * xit). */
     cspline_ypp(args->st, args->xit[k], args->ns, args->xipp[k]);
@@ -107,14 +107,6 @@ static inline void least_square_fit(ARGS *args) {
   bwd_subst(args->LS_U, args->apoly, ntot, args->apoly);
 
   /* Compute the residual with the nuisance parameters. */
-  /* TEST
-  for (size_t j = 0; j < args->nbin; j++) {
-    double poly = 0;
-    for (size_t i = 0; i < ntot; i++)
-      poly += args->apoly[i] * args->basis[j * args->npoly + i];
-    args->xim[j] -= poly;
-  }
-  */
   for (int k = 0; k < args->nxi; k++) {
     double *apoly = args->apoly + k * args->npoly;
     for (size_t j = args->idata[k]; j < args->edata[k]; j++) {
