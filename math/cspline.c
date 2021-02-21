@@ -125,6 +125,10 @@ static inline size_t bin_search(const double *x, const double xv,
   size_t u = iend;
   while (l <= u) {
     size_t i = (l + u) >> 1;
+    if (i >= iend) {
+      if (x[iend] == xv) return iend;
+      else return SIZE_MAX;
+    }
     if (x[i + 1] <= xv) l = i + 1;
     else if (x[i] > xv) u = i - 1;
     else return i;

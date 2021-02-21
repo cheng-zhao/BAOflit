@@ -458,6 +458,11 @@ static int init_pk(const CONF *conf, ARGS *args) {
     free(lnk); free(fac);
     return BAOFLIT_ERR_INIT;
   }
+  if (klin[0] > conf->kmin || klin[nlin - 1] < conf->kmax) {
+    P_ERR("k range in file not enough for interpolation: `%s'\n", conf->fplin);
+    free(lnk); free(fac); free(klin); free(Plin);
+    return BAOFLIT_ERR_INIT;
+  }
 
   /* Obtain the linear non-wiggle matter power spectrum. */
   double *knw, *Pnw;
@@ -467,6 +472,11 @@ static int init_pk(const CONF *conf, ARGS *args) {
     if (read_table(conf->fpnw, conf->comment, 1, 2, 0, DBL_MAX, &knw, &Pnw,
         &nnw)) {
       free(lnk); free(fac); free(klin); free(Plin);
+      return BAOFLIT_ERR_INIT;
+    }
+    if (knw[0] > conf->kmin || knw[nnw - 1] < conf->kmax) {
+      P_ERR("k range in file not enough for interpolation: `%s'\n", conf->fpnw);
+      free(lnk); free(fac); free(klin); free(Plin); free(knw); free(Pnw);
       return BAOFLIT_ERR_INIT;
     }
   }
@@ -528,6 +538,13 @@ static int init_pk(const CONF *conf, ARGS *args) {
       if (read_table(conf->fpnwt[i], conf->comment, 1, 2, 0, DBL_MAX,
           &kt, &Pt, &nt)) {
         free(lnk); free(fac); free(knw); free(Pnw); free(ypp);
+        return BAOFLIT_ERR_INIT;
+      }
+      if (kt[0] > conf->kmin || kt[nt - 1] < conf->kmax) {
+        P_ERR("k range in file not enough for interpolation: `%s'\n",
+            conf->fpnwt[i]);
+        free(lnk); free(fac); free(knw); free(Pnw); free(ypp);
+        free(kt); free(Pt);
         return BAOFLIT_ERR_INIT;
       }
 
