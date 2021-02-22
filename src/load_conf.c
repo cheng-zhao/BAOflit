@@ -112,6 +112,8 @@ Perform multi-tracer BAO fit with the MultiNest sampler.\n\
         Column numbers (starting from 1) for separations in " FMT_KEY(MOCK_LIST) "\n\
   -Y, --mock-xi         " FMT_KEY(MOCK_XI_COL) "     Integer array\n\
         Column numbers (starting from 1) for 2PCFs in " FMT_KEY(MOCK_LIST) "\n\
+      --cov-rescale     " FMT_KEY(COV_RESCALE) "     Double\n\
+        A constant to be multiplied with the covariance matrix\n\
       --comment         " FMT_KEY(FILE_COMMENT) "    Character\n\
         Specify comment symbols for input files\n\
       --alpha-min       " FMT_KEY(ALPHA_PRIOR_MIN) " Double\n\
@@ -246,6 +248,9 @@ MOCK_SEP_COL    = \n\
 MOCK_XI_COL     = \n\
     # Column numbers for 2PCFs of mocks in each list.\n\
     # Integer or integer array, same dimension as `DATA_FILE`.\n\
+COV_RESCALE     = \n\
+    # A constant to be multiplied with the covariance matrix (unset: " OFMT_DBL ")\n\
+    # Double-precision floating-point number.\n\
 FILE_COMMENT    = \n\
     # Character indicating lines to be skipped for input files (unset: '%c%s.\n\
 \n\
@@ -370,9 +375,10 @@ OUTPUT_ROOT     = \n\
     # String, basename of the outputs to be written by multinest.\n\
 VERBOSE         = \n\
     # Boolean option, indicate whether to show detailed outputs (unset: %c).\n",
-      DEFAULT_COMMENT ? DEFAULT_COMMENT : '\'', DEFAULT_COMMENT ? "')" : ")",
-      DEFAULT_BIAS_PRIOR, DEFAULT_NUM_NUISANCE, DEFAULT_PK_INT_METHOD,
-      DEFAULT_RESUME ? 'T' : 'F', DEFAULT_VERBOSE ? 'T' : 'F');
+      (double) DEFAULT_COV_RESCALE, DEFAULT_COMMENT ? DEFAULT_COMMENT : '\'',
+      DEFAULT_COMMENT ? "')" : ")", DEFAULT_BIAS_PRIOR, DEFAULT_NUM_NUISANCE,
+      DEFAULT_PK_INT_METHOD, DEFAULT_RESUME ? 'T' : 'F',
+      DEFAULT_VERBOSE ? 'T' : 'F');
   exit(0);
 }
 
@@ -440,6 +446,7 @@ static cfg_t *conf_read(CONF *conf, const int argc, char *const *argv) {
     {'m', "mock"        , "MOCK_LIST"      , CFG_ARRAY_STR , &conf->fmock   },
     {'S', "mock-s"      , "MOCK_SEP_COL"   , CFG_ARRAY_INT , &conf->mscol   },
     {'Y', "mock-xi"     , "MOCK_XI_COL"    , CFG_ARRAY_INT , &conf->mxicol  },
+    { 0 , "cov-rescale" , "COV_RESCALE"    , CFG_DTYPE_DBL , &conf->cov_fac },
     { 0 , "comment"     , "FILE_COMMENT"   , CFG_DTYPE_CHAR, &conf->comment },
     { 0 , "alpha-min"   , "ALPHA_PRIOR_MIN", CFG_DTYPE_DBL , &conf->pmin_a  },
     { 0 , "alpha-max"   , "ALPHA_PRIOR_MAX", CFG_DTYPE_DBL , &conf->pmax_a  },
@@ -689,6 +696,12 @@ static int conf_verify(const cfg_t *cfg, CONF *conf) {
         return BAOFLIT_ERR_CFG;
       }
     }
+  }
+
+  if (!cfg_is_set(cfg, &conf->cov_fac)) conf->cov_fac = DEFAULT_COV_RESCALE;
+  if (conf->cov_fac <= 0) {
+    P_ERR(FMT_KEY(COV_RESCALE) " must be positive\n");
+    return BAOFLIT_ERR_CFG;
   }
 
   /* FILE_COMMENT */
@@ -1100,6 +1113,7 @@ static void conf_print(const CONF *conf) {
     for (int i = 1; i < conf->ninput; i++) printf(" , %d", conf->mxicol[i]);
   }
   else printf("\n  COV_FILE        = <R> %s", conf->fcov);
+  printf("\n  COV_RESCALE     = " OFMT_DBL, conf->cov_fac);
   if (conf->comment) printf("\n  FILE_COMMENT    = '%c'", conf->comment);
 
   /* Fitting parameters. */
@@ -1160,7 +1174,8 @@ static void conf_print(const CONF *conf) {
   printf("\n  PK_LINEAR       = %s", conf->fplin);
   if (conf->fpnw) printf("\n  PK_NOBAO_MATTER = %s", conf->fpnw);
   if (conf->fpnwt) {
-    printf("\n  PK_NOBAO_TRACER = %s", conf->fpnwt[0]);
+    printf("\n  PK_NOBAO_TRACER = %s",
+        (*conf->fpnwt[0]) ? "\"\"" : conf->fpnwt[0]);
     for (int i = 1; i < conf->ninput; i++) {
       if (*conf->fpnwt[i]) printf("\n                    %s", conf->fpnwt[i]);
       else printf("\n                    \"\"");

@@ -327,6 +327,11 @@ static int get_cov(const CONF *conf, ARGS * args) {
       return BAOFLIT_ERR_FILE;
   }
 
+  /* Rescale the covariance matrix. */
+  double norm = sqrt(conf->cov_fac);
+  size_t len = (args->nbin * (args->nbin + 1)) >> 1;
+  for (size_t i = 0; i < len; i++) args->Rcov[i] *= norm;
+
   if (conf->verbose) {
     if (conf->comp_cov) {
       printf("  Covariance matrix constructed with %zu mocks", args->nmock);

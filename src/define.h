@@ -67,6 +67,7 @@
 \*============================================================================*/
 /* Default value for unset parameters. */
 #define DEFAULT_CONF_FILE               "baoflit.conf"
+#define DEFAULT_COV_RESCALE             1
 #define DEFAULT_COMMENT                 '#'
 #define DEFAULT_BIAS_PRIOR              0
 #define DEFAULT_NUM_NUISANCE            3

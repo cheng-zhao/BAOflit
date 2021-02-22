@@ -49,6 +49,7 @@ typedef struct {
   char *fcov;           /* COV_FILE             */
   bool comp_cov;        /* Indicate whether to compute the covariance matrix. */
   char **fmock;         /* MOCK_LIST            */
+  double cov_fac;       /* COV_RESCALE          */
   int *mscol;           /* MOCK_SEP_COL         */
   int *mxicol;          /* MOCK_XI_COL          */
   char comment;         /* FILE_COMMENT         */
