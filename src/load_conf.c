@@ -123,7 +123,7 @@ Perform multi-tracer BAO fit with the MultiNest sampler.\n\
   -B, --B-fit           " FMT_KEY(TRACER_BIAS_FIT) " Character array\n\
         Specify tracers with free bias parameters (B)\n\
       --B-prior-type    " FMT_KEY(BIAS_PRIOR_TYPE) " Integer\n\
-        Prior type of the bias parameters\n\
+        Specify the prior type of the bias parameters\n\
       --B-min           " FMT_KEY(BIAS_PRIOR_MIN) "  Double array\n\
         Set the lower prior limits of B\n\
       --B-max           " FMT_KEY(BIAS_PRIOR_MAX) "  Double array\n\
@@ -132,12 +132,18 @@ Perform multi-tracer BAO fit with the MultiNest sampler.\n\
         Set the central values for Gaussian priors of B\n\
       --B-sigma         " FMT_KEY(BIAS_PRIOR_SIG) "  Double array\n\
         Set the standard deviations for Gaussian priors of B\n\
+      --Snl-type        " FMT_KEY(SIGMA_TYPE) "      Integer\n\
+        Specify the way the BAO damping parameters (Sigma_nl) is dealt with\n\
       --Snl-value       " FMT_KEY(SIGMA_VALUE) "     Double array\n\
-        Set fixed values of the BAO dampling parameters (Sigma_nl)\n\
+        Set fixed values Sigma_nl\n\
       --Snl-min         " FMT_KEY(SIGMA_PRIOR_MIN) " Double array\n\
         Set the lower prior limits of Sigma_nl\n\
       --Snl-max         " FMT_KEY(SIGMA_PRIOR_MAX) " Double array\n\
         Set the upper prior limits of Sigma_nl\n\
+      --Snl-center      " FMT_KEY(SIGMA_PRIOR_CEN) " Double array\n\
+        Set the central values for Gaussian priors of Sigma_nl\n\
+      --Snl-sigma       " FMT_KEY(SIGMA_PRIOR_SIG) " Double array\n\
+        Set the standard deviations for Gaussian priors of Sigma_nl\n\
       --num-nuisance    " FMT_KEY(NUM_NUISANCE) "    Integer\n\
         Number of nuisance parameters for least-squared fits\n\
   -p, --pk-lin          " FMT_KEY(PK_LINEAR) "       String\n\
@@ -270,25 +276,33 @@ TRACER_BIAS_FIT = \n\
 BIAS_PRIOR_TYPE = \n\
     # Prior type of the bias parameters (B, unset: %d).\n\
     # Integer, allowed values are:\n\
-    # * 0: flat prior;\n\
-    # * 1: Gaussian prior.\n\
+    # * %d: flat prior;\n\
+    # * %d: Gaussian prior.\n\
 BIAS_PRIOR_MIN  = \n\
 BIAS_PRIOR_MAX  = \n\
-    # Prior ranges of B, for both the flat and Gaussian priors.\n\
+    # Prior ranges of B, for both flat and Gaussian priors.\n\
     # Double-precision number or array, same dimension as `TRACER_BIAS_FIT`.\n\
 BIAS_PRIOR_CEN  = \n\
 BIAS_PRIOR_SIG  = \n\
     # Mean and standard deviation for the Gaussian prior of B.\n\
     # Double-precision number or array, same dimension as `TRACER_BIAS_FIT`.\n\
+SIGMA_TYPE      = \n\
+    # Type of the Sigma_nl parameters for the fit (unset: %d).\n\
+    # Integer, allowed values are:\n\
+    # * %d: fixed value specified by `SIGMA_VALUE`;\n\
+    # * %d: flat prior;\n\
+    # * %d: Gaussian prior.\n\
 SIGMA_VALUE     = \n\
-    # The BAO damping parameter (Sigma_nl).\n\
+    # Fixed value of the BAO damping parameter (Sigma_nl).\n\
     # Double-precision number or array, same dimension as `DATA_FILE`.\n\
-    # If unset, Sigma_nl is fitted as free parameter.\n\
 SIGMA_PRIOR_MIN = \n\
 SIGMA_PRIOR_MAX = \n\
-    # Flat prior ranges of Sigma_nl.\n\
+    # Prior ranges of Sigma_nl, for both flat and Gaussian priors.\n\
     # Double-precision number or array, same dimension as `DATA_FILE`.\n\
-    # They are used only if `SIGMA_VALUE` is unset.\n\
+SIGMA_PRIOR_CEN = \n\
+SIGMA_PRIOR_SIG = \n\
+    # Mean and standard deviation for the Gaussian prior of Sigma_nl.\n\
+    # Double-precision number or array, same dimention as `DATA_FILE`.\n\
 NUM_NUISANCE    = \n\
     # Number of noisance (polynomial) parameters for all 2PCFs (unset: %d).\n\
 \n\
@@ -376,7 +390,9 @@ OUTPUT_ROOT     = \n\
 VERBOSE         = \n\
     # Boolean option, indicate whether to show detailed outputs (unset: %c).\n",
       (double) DEFAULT_COV_RESCALE, DEFAULT_COMMENT ? DEFAULT_COMMENT : '\'',
-      DEFAULT_COMMENT ? "')" : ")", DEFAULT_BIAS_PRIOR, DEFAULT_NUM_NUISANCE,
+      DEFAULT_COMMENT ? "')" : ")", DEFAULT_BIAS_PRIOR, BAOFLIT_PRIOR_FLAT,
+      BAOFLIT_PRIOR_GAUSS, DEFAULT_SIGMA_TYPE, BAOFLIT_PARAM_FIX,
+      BAOFLIT_PRIOR_FLAT, BAOFLIT_PRIOR_GAUSS, DEFAULT_NUM_NUISANCE,
       DEFAULT_PK_INT_METHOD, DEFAULT_RESUME ? 'T' : 'F',
       DEFAULT_VERBOSE ? 'T' : 'F');
   exit(0);
@@ -401,6 +417,7 @@ static CONF *conf_init(void) {
   conf->fitmin = conf->fitmax = NULL;
   conf->pmin_B = conf->pmax_B = conf->pcen_B = conf->psig_B = NULL;
   conf->val_Snl = conf->pmin_Snl = conf->pmax_Snl = NULL;
+  conf->pcen_Snl = conf->psig_Snl = NULL;
   conf->fconf = conf->fcov = conf->fplin = conf->fpnw = conf->Bfit = NULL;
   conf->oroot = NULL;
   conf->has_nwt = NULL;
@@ -426,14 +443,12 @@ static cfg_t *conf_read(CONF *conf, const int argc, char *const *argv) {
   if (!cfg) P_CFG_ERR(cfg);
 
   /* Functions to be called via command line flags. */
-  const int nfunc = 2;
   const cfg_func_t funcs[] = {
     {   'h',        "help",             usage,          NULL},
     {   't',    "template",     conf_template,          NULL}
   };
 
   /* Configuration parameters. */
-  const int npar = 47;
   const cfg_param_t params[] = {
     {'c', "conf"        , "CONFIG_FILE"    , CFG_DTYPE_STR , &conf->fconf   },
     {'d', "data"        , "DATA_FILE"      , CFG_ARRAY_STR , &conf->fdata   },
@@ -456,9 +471,12 @@ static cfg_t *conf_read(CONF *conf, const int argc, char *const *argv) {
     { 0 , "B-max"       , "BIAS_PRIOR_MAX" , CFG_ARRAY_DBL , &conf->pmax_B  },
     { 0 , "B-center"    , "BIAS_PRIOR_CEN" , CFG_ARRAY_DBL , &conf->pcen_B  },
     { 0 , "B-sigma"     , "BIAS_PRIOR_SIG" , CFG_ARRAY_DBL , &conf->psig_B  },
+    { 0 , "Snl-type"    , "SIGMA_TYPE"     , CFG_DTYPE_INT , &conf->Snltype },
     { 0 , "Snl-value"   , "SIGMA_VALUE"    , CFG_ARRAY_DBL , &conf->val_Snl },
     { 0 , "Snl-min"     , "SIGMA_PRIOR_MIN", CFG_ARRAY_DBL , &conf->pmin_Snl},
     { 0 , "Snl-max"     , "SIGMA_PRIOR_MAX", CFG_ARRAY_DBL , &conf->pmax_Snl},
+    { 0 , "Snl-center"  , "SIGMA_PRIOR_CEN", CFG_ARRAY_DBL , &conf->pcen_Snl},
+    { 0 , "Snl-sigma"   , "SIGMA_PRIOR_SIG", CFG_ARRAY_DBL , &conf->psig_Snl},
     { 0 , "num-nuisance", "NUM_NUISANCE"   , CFG_DTYPE_INT , &conf->npoly   },
     {'p', "pk-lin"      , "PK_LINEAR"      , CFG_DTYPE_STR , &conf->fplin   },
     {'P', "pk-nw"       , "PK_NOBAO_MATTER", CFG_DTYPE_STR , &conf->fpnw    },
@@ -486,9 +504,11 @@ static cfg_t *conf_read(CONF *conf, const int argc, char *const *argv) {
   };
 
   /* Register functions and parameters. */
-  if (cfg_set_funcs(cfg, funcs, nfunc)) P_CFG_ERR(cfg);
+  if (cfg_set_funcs(cfg, funcs, sizeof(funcs) / sizeof(funcs[0])))
+      P_CFG_ERR(cfg);
   P_CFG_WRN(cfg);
-  if (cfg_set_params(cfg, params, npar)) P_CFG_ERR(cfg);
+  if (cfg_set_params(cfg, params, sizeof(params) / sizeof(params[0])))
+      P_CFG_ERR(cfg);
   P_CFG_WRN(cfg);
 
   /* Read configurations from command line options. */
@@ -759,7 +779,7 @@ static int conf_verify(const cfg_t *cfg, CONF *conf) {
     /* BIAS_PRIOR_TYPE */
     if (!cfg_is_set(cfg, &conf->Btype)) conf->Btype = DEFAULT_BIAS_PRIOR;
     switch (conf->Btype) {
-      case BIAS_PRIOR_FLAT:
+      case BAOFLIT_PRIOR_FLAT:
         /* BIAS_PRIOR_MIN and BIAS_PRIOR_MAX */
         CHECK_EXIST_ARRAY(BIAS_PRIOR_MIN, cfg, &conf->pmin_B, num);
         CHECK_ARRAY_LENGTH(BIAS_PRIOR_MIN, cfg, conf->pmin_B, OFMT_DBL,
@@ -775,7 +795,7 @@ static int conf_verify(const cfg_t *cfg, CONF *conf) {
           }
         }
         break;
-      case BIAS_PRIOR_GAUSS:
+      case BAOFLIT_PRIOR_GAUSS:
         /* BIAS_PRIOR_MIN and BIAS_PRIOR_MAX */
         CHECK_EXIST_ARRAY(BIAS_PRIOR_MIN, cfg, &conf->pmin_B, num);
         CHECK_ARRAY_LENGTH(BIAS_PRIOR_MIN, cfg, conf->pmin_B, OFMT_DBL,
@@ -819,40 +839,91 @@ static int conf_verify(const cfg_t *cfg, CONF *conf) {
     }
   }
 
-  /* SIGMA_VALUE */
-  if ((num = cfg_get_size(cfg, &conf->val_Snl))) {
-    CHECK_ARRAY_LENGTH(SIGMA_VALUE, cfg, conf->val_Snl, OFMT_DBL, num,
-        conf->ninput);
-    for (int i = 0; i < conf->ninput; i++) {
-      if (conf->val_Snl[i] < 0) {
-        P_ERR(FMT_KEY(SIGMA_VALUE) " must be non-negative\n");
-        return BAOFLIT_ERR_CFG;
+  /* SIGMA_TYPE */
+  if (!cfg_is_set(cfg, &conf->Snltype)) conf->Snltype = DEFAULT_SIGMA_TYPE;
+  switch (conf->Snltype) {
+    case BAOFLIT_PARAM_FIX:
+      /* SIGMA_VALUE */
+      CHECK_EXIST_ARRAY(SIGMA_VALUE, cfg, &conf->val_Snl, num);
+      CHECK_ARRAY_LENGTH(SIGMA_VALUE, cfg, conf->val_Snl, OFMT_DBL, num,
+          conf->ninput);
+      for (int i = 0; i < conf->ninput; i++) {
+        if (conf->val_Snl[i] < 0) {
+          P_ERR(FMT_KEY(SIGMA_VALUE) " must be non-negative\n");
+          return BAOFLIT_ERR_CFG;
+        }
       }
-    }
+      break;
+    case BAOFLIT_PRIOR_FLAT:
+      /* SIGMA_PRIOR_MIN and SIGMA_PRIOR_MAX */
+      CHECK_EXIST_ARRAY(SIGMA_PRIOR_MIN, cfg, &conf->pmin_Snl, num);
+      CHECK_ARRAY_LENGTH(SIGMA_PRIOR_MIN, cfg, conf->pmin_Snl, OFMT_DBL,
+          num, conf->ninput);
+      CHECK_EXIST_ARRAY(SIGMA_PRIOR_MAX, cfg, &conf->pmax_Snl, num);
+      CHECK_ARRAY_LENGTH(SIGMA_PRIOR_MAX, cfg, conf->pmax_Snl, OFMT_DBL,
+          num, conf->ninput);
+      for (int i = 0; i < conf->ninput; i++) {
+        if (conf->pmin_Snl[i] < 0) {
+          P_ERR(FMT_KEY(SIGMA_PRIOR_MIN) " must be non-negative\n");
+          return BAOFLIT_ERR_CFG;
+        }
+        if (conf->pmin_Snl[i] >= conf->pmax_Snl[i]) {
+          P_ERR(FMT_KEY(SIGMA_PRIOR_MAX) " must be larger than "
+              FMT_KEY(SIGMA_PRIOR_MIN) "\n");
+          return BAOFLIT_ERR_CFG;
+        }
+      }
+      break;
+    case BAOFLIT_PRIOR_GAUSS:
+      /* SIGMA_PRIOR_MIN and SIGMA_PRIOR_MAX */
+      CHECK_EXIST_ARRAY(SIGMA_PRIOR_MIN, cfg, &conf->pmin_Snl, num);
+      CHECK_ARRAY_LENGTH(SIGMA_PRIOR_MIN, cfg, conf->pmin_Snl, OFMT_DBL,
+          num, conf->ninput);
+      CHECK_EXIST_ARRAY(SIGMA_PRIOR_MAX, cfg, &conf->pmax_Snl, num);
+      CHECK_ARRAY_LENGTH(SIGMA_PRIOR_MAX, cfg, conf->pmax_Snl, OFMT_DBL,
+          num, conf->ninput);
+      for (int i = 0; i < conf->ninput; i++) {
+        if (conf->pmin_Snl[i] < 0) {
+          P_ERR(FMT_KEY(SIGMA_PRIOR_MIN) " must be non-negative\n");
+          return BAOFLIT_ERR_CFG;
+        }
+        if (conf->pmin_Snl[i] >= conf->pmax_Snl[i]) {
+          P_ERR(FMT_KEY(SIGMA_PRIOR_MAX) " must be larger than "
+              FMT_KEY(SIGMA_PRIOR_MIN) "\n");
+          return BAOFLIT_ERR_CFG;
+        }
+      }
+      /* SIGMA_PRIOR_CEN and SIGMA_PRIOR_SIG */
+      CHECK_EXIST_ARRAY(SIGMA_PRIOR_CEN, cfg, &conf->pcen_Snl, num);
+      CHECK_ARRAY_LENGTH(SIGMA_PRIOR_CEN, cfg, conf->pcen_Snl, OFMT_DBL,
+          num, conf->ninput);
+      CHECK_EXIST_ARRAY(SIGMA_PRIOR_SIG, cfg, &conf->psig_Snl, num);
+      CHECK_ARRAY_LENGTH(SIGMA_PRIOR_SIG, cfg, conf->psig_Snl, OFMT_DBL,
+          num, conf->ninput);
+      for (int i = 0; i < conf->ninput; i++) {
+        if (conf->psig_Snl[i] <= 0) {
+          P_ERR(FMT_KEY(SIGMA_PRIOR_SIG) " must be positive\n");
+          return BAOFLIT_ERR_CFG;
+        }
+        double low = conf->pcen_Snl[i] - conf->psig_Snl[i] * BAOFLIT_WARN_SIGMA;
+        double hi = conf->pcen_Snl[i] + conf->psig_Snl[i] * BAOFLIT_WARN_SIGMA;
+        if ((conf->pmin_Snl[i] > 0 && conf->pmin_Snl[i] > low) ||
+            conf->pmax_Snl[i] < hi) {
+          P_WRN(FMT_KEY(SIGMA_PRIOR_MIN) " (" OFMT_DBL ") or"
+              FMT_KEY(SIGMA_PRIOR_MAX) " (" OFMT_DBL ") is inside " OFMT_DBL
+              " sigma range of the Gaussian prior: [" OFMT_DBL "," OFMT_DBL
+              "]\n", conf->pmin_Snl[i], conf->pmax_Snl[i],
+              (double) BAOFLIT_WARN_SIGMA, low, hi);
+        }
+      }
+      break;
+    default:
+      P_ERR("invalid " FMT_KEY(SIGMA_TYPE) ": %d\n", conf->Snltype);
+      return BAOFLIT_ERR_CFG;
   }
-  else {
-    /* SIGMA_PRIOR_MIN */
-    CHECK_EXIST_ARRAY(SIGMA_PRIOR_MIN, cfg, &conf->pmin_Snl, num);
-    CHECK_ARRAY_LENGTH(SIGMA_PRIOR_MIN, cfg, conf->pmin_Snl, OFMT_DBL,
-        num, conf->ninput);
-    for (int i = 0; i < conf->ninput; i++) {
-      if (conf->pmin_Snl[i] < 0) {
-        P_ERR(FMT_KEY(SIGMA_PRIOR_MIN) " must be non-negative\n");
-        return BAOFLIT_ERR_CFG;
-      }
-    }
-
-    /* SIGMA_PRIOR_MAX */
-    CHECK_EXIST_ARRAY(SIGMA_PRIOR_MAX, cfg, &conf->pmax_Snl, num);
-    CHECK_ARRAY_LENGTH(SIGMA_PRIOR_MAX, cfg, conf->pmax_Snl, OFMT_DBL,
-        num, conf->ninput);
-    for (int i = 0; i < conf->ninput; i++) {
-      if (conf->pmin_Snl[i] >= conf->pmax_Snl[i]) {
-        P_ERR(FMT_KEY(SIGMA_PRIOR_MAX) " must be larger than "
-            FMT_KEY(SIGMA_PRIOR_MIN) "\n");
-        return BAOFLIT_ERR_CFG;
-      }
-    }
+  if (conf->Snltype != BAOFLIT_PARAM_FIX) {     /* clean val_Snl */
+    FREE_ARRAY(conf->val_Snl);
+    conf->val_Snl = NULL;
   }
 
   /* NUM_NUISANCE */
@@ -1010,7 +1081,7 @@ static int conf_verify(const cfg_t *cfg, CONF *conf) {
   while (smax < conf->smax - DOUBLE_TOL) {
     smax += conf->ds;
     if (++conf->ns > BAOFLIT_MAX_SEP_BIN) {
-      P_ERR("too many separations bins given " FMT_KEY(S_MIN) ", "
+      P_ERR("too many separation bins given " FMT_KEY(S_MIN) ", "
           FMT_KEY(S_MAX) ", and " FMT_KEY(S_BIN_SIZE) "\n");
       return BAOFLIT_ERR_CFG;
     }
@@ -1020,6 +1091,11 @@ static int conf_verify(const cfg_t *cfg, CONF *conf) {
         FMT_KEY(S_MIN) " and " FMT_KEY(S_BIN_SIZE) "\n", smax);
   }
   conf->smax = smax;
+  if (conf->ns < BAOFLIT_MIN_SEP_BIN) {
+    P_ERR("too few separation bins given " FMT_KEY(S_MIN) ", "
+        FMT_KEY(S_MAX) ", and " FMT_KEY(S_BIN_SIZE) "\n");
+    return BAOFLIT_ERR_CFG;
+  }
 
   /* Check if the separation range of the model covers the fitting range. */
   if (conf->smin * conf->pmax_a > fitmin ||
@@ -1125,7 +1201,7 @@ static void conf_print(const CONF *conf) {
     for (int i = 1; i < conf->num_B; i++) printf(" , '%c'", conf->Bfit[i]);
     printf("\n  BIAS_PRIOR_TYPE = %d", conf->Btype);
     switch (conf->Btype) {
-      case BIAS_PRIOR_FLAT:
+      case BAOFLIT_PRIOR_FLAT:
         printf(" (flat)");
         printf("\n  BIAS_PRIOR_MIN  = " OFMT_DBL, conf->pmin_B[0]);
         for (int i = 1; i < conf->num_B; i++)
@@ -1134,7 +1210,7 @@ static void conf_print(const CONF *conf) {
         for (int i = 1; i < conf->num_B; i++)
           printf(" , " OFMT_DBL, conf->pmax_B[i]);
         break;
-      case BIAS_PRIOR_GAUSS:
+      case BAOFLIT_PRIOR_GAUSS:
         printf(" (Gaussian)");
         printf("\n  BIAS_PRIOR_MIN  = " OFMT_DBL, conf->pmin_B[0]);
         for (int i = 1; i < conf->num_B; i++)
@@ -1155,18 +1231,41 @@ static void conf_print(const CONF *conf) {
     }
   }
 
-  if (conf->val_Snl) {
-    printf("\n  SIGMA_VALUE     = " OFMT_DBL, conf->val_Snl[0]);
-    for (int i = 1; i < conf->ninput; i++)
-      printf(" , " OFMT_DBL, conf->val_Snl[i]);
-  }
-  else {
-    printf("\n  SIGMA_PRIOR_MIN = " OFMT_DBL, conf->pmin_Snl[0]);
-    for (int i = 1; i < conf->ninput; i++)
-      printf(" , " OFMT_DBL, conf->pmin_Snl[i]);
-    printf("\n  SIGMA_PRIOR_MAX = " OFMT_DBL, conf->pmax_Snl[0]);
-    for (int i = 1; i < conf->ninput; i++)
-      printf(" , " OFMT_DBL, conf->pmax_Snl[i]);
+  printf("\n  SIGMA_TYPE      = %d", conf->Snltype);
+  switch (conf->Snltype) {
+    case BAOFLIT_PARAM_FIX:
+      printf(" (fixed)");
+      printf("\n  SIGMA_VALUE     = " OFMT_DBL, conf->val_Snl[0]);
+      for (int i = 1; i < conf->ninput; i++)
+        printf(" , " OFMT_DBL, conf->val_Snl[i]);
+      break;
+    case BAOFLIT_PRIOR_FLAT:
+      printf(" (flat)");
+      printf("\n  SIGMA_PRIOR_MIN = " OFMT_DBL, conf->pmin_Snl[0]);
+      for (int i = 1; i < conf->ninput; i++)
+        printf(" , " OFMT_DBL, conf->pmin_Snl[i]);
+      printf("\n  SIGMA_PRIOR_MAX = " OFMT_DBL, conf->pmax_Snl[0]);
+      for (int i = 1; i < conf->ninput; i++)
+        printf(" , " OFMT_DBL, conf->pmax_Snl[i]);
+      break;
+    case BAOFLIT_PRIOR_GAUSS:
+      printf(" (Gaussian)");
+      printf("\n  SIGMA_PRIOR_MIN = " OFMT_DBL, conf->pmin_Snl[0]);
+      for (int i = 1; i < conf->ninput; i++)
+        printf(" , " OFMT_DBL, conf->pmin_Snl[i]);
+      printf("\n  SIGMA_PRIOR_MAX = " OFMT_DBL, conf->pmax_Snl[0]);
+      for (int i = 1; i < conf->ninput; i++)
+        printf(" , " OFMT_DBL, conf->pmax_Snl[i]);
+      printf("\n  SIGMA_PRIOR_CEN = " OFMT_DBL, conf->pcen_Snl[0]);
+      for (int i = 1; i < conf->ninput; i++)
+        printf(" , " OFMT_DBL, conf->pcen_Snl[i]);
+      printf("\n  SIGMA_PRIOR_SIG = " OFMT_DBL, conf->psig_Snl[0]);
+      for (int i = 1; i < conf->ninput; i++)
+        printf(" , " OFMT_DBL, conf->psig_Snl[i]);
+      break;
+    default:
+      P_ERR("unexpected " FMT_KEY(SIGMA_TYPE) ": %d\n", conf->Snltype);
+      return;
   }
   printf("\n  NUM_NUISANCE    = %d", conf->npoly);
 
@@ -1293,6 +1392,8 @@ void conf_destroy(CONF *conf) {
   FREE_ARRAY(conf->val_Snl);
   FREE_ARRAY(conf->pmin_Snl);
   FREE_ARRAY(conf->pmax_Snl);
+  FREE_ARRAY(conf->pcen_Snl);
+  FREE_ARRAY(conf->psig_Snl);
   FREE_ARRAY(conf->fplin);
   FREE_ARRAY(conf->fpnw);
   FREE_STR_ARRAY(conf->fpnwt);

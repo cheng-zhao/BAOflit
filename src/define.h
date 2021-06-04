@@ -69,7 +69,8 @@
 #define DEFAULT_CONF_FILE               "baoflit.conf"
 #define DEFAULT_COV_RESCALE             1
 #define DEFAULT_COMMENT                 '#'
-#define DEFAULT_BIAS_PRIOR              0
+#define DEFAULT_BIAS_PRIOR              BAOFLIT_PRIOR_FLAT
+#define DEFAULT_SIGMA_TYPE              BAOFLIT_PRIOR_FLAT
 #define DEFAULT_NUM_NUISANCE            3
 #define DEFAULT_PK_INT_METHOD           0
 #define DEFAULT_RESUME                  true
@@ -80,6 +81,7 @@
 #define BAOFLIT_PRIOR_FILE              1
 
 /* Limits of configuration parameters. */
+#define BAOFLIT_MIN_SEP_BIN     5       /* minimum number of separation bins */
 #define BAOFLIT_MAX_SEP_BIN     8192    /* maximum number of separation bins */
 #define BAOFLIT_MAX_TRACER      100     /* maximum allowed number of tracers */
 #define BAOFLIT_MAX_FILE_COL    1024    /* maximum allowed number of columns */

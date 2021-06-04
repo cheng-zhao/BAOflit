@@ -133,7 +133,8 @@ Return:
   Address of the structure for 2PCF evaluation.
 ******************************************************************************/
 static double chi_squared(const double *par, ARGS *args) {
-  if (args->fit_Snl) xi_template(par + 1 + args->num_B, args);
+  if (args->Snltype != BAOFLIT_PARAM_FIX)
+    xi_template(par + 1 + args->num_B, args);
   xi_residual(par, args);
   if (args->npoly) least_square_fit(args);
 
@@ -180,7 +181,8 @@ static int eval_model(CONF *conf, ARGS *args) {
   for (int mid = 0; mid < 3; mid++) {
     double *pbest = args->pmodel + mid * args->npar;
     /* Perform the fit. */
-    if (args->fit_Snl) xi_template(pbest + 1 + args->num_B, args);
+    if (args->Snltype != BAOFLIT_PARAM_FIX)
+      xi_template(pbest + 1 + args->num_B, args);
     xi_residual(pbest, args);
     if (args->npoly) {
       least_square_fit(args);
@@ -257,9 +259,15 @@ static void log_like(double *par, int *ndim, int *npar, double *lnlike,
   *lnlike = -0.5 * chi_squared(par, args);
 
   /* Add non-flat priors. */
-  if (args->Btype == BIAS_PRIOR_GAUSS) {
+  if (args->Btype == BAOFLIT_PRIOR_GAUSS) {
     for (int i = 0; i < args->num_B; i++) {
-      double d = (par[i + 1] - args->pcen[i]) / args->psig[i];
+      double d = (par[i + 1] - args->Bcen[i]) / args->Bsig[i];
+      *lnlike -= 0.5 * d * d;
+    }
+  }
+  if (args->Snltype == BAOFLIT_PRIOR_GAUSS) {
+    for (int i = 0; i < args->nxi; i++) {
+      double d = (par[i + args->num_B + 1] - args->Snlcen[i]) / args->Snlsig[i];
       *lnlike -= 0.5 * d * d;
     }
   }
@@ -315,7 +323,7 @@ void run_multinest(CONF *conf, ARGS *args) {
   fflush(stdout);
 
   /* The template 2PCFs can be pre-computed if Sigma_nl values are fixed. */
-  if (!args->fit_Snl) xi_template(conf->val_Snl, args);
+  if (conf->val_Snl) xi_template(conf->val_Snl, args);
 
 #ifdef DEBUG
   for (int i = 0; i < args->npar * 3; i++) args->pmodel[i] = 1;
@@ -381,7 +389,7 @@ void run_multinest(CONF *conf, ARGS *args) {
       for (int i = 0; i < args->num_B; i++)
         printf(" " OFMT_DBL, pbest[i + 1]);
 
-      if (args->fit_Snl) {
+      if (args->Snltype != BAOFLIT_PARAM_FIX) {
         printf("\n    Sigma_nl:");
         for (int i = 0; i < args->nxi; i++)
           printf(" " OFMT_DBL, pbest[1 + args->num_B + i]);

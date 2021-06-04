@@ -92,6 +92,7 @@ int save_param(const CONF *conf) {
   const char pname[] = ".paramnames";
   if (idx + sizeof(pname) >= BAOFLIT_MN_FNAME_LEN) {
     P_ERR("the basename of output files is too long\n");
+    free(fname);
     return BAOFLIT_ERR_ARG;
   }
   memcpy(fname + idx, pname, sizeof(pname));

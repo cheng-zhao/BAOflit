@@ -16,7 +16,7 @@
 #include <math.h>
 
 /* Shortcut for matrix indexing. */
-#define MATRIX(A,m,i,j)   A[(i) + (j) * (m)]
+#define MATRIX(A,m,i,j)   (A)[(i) + (j) * (m)]
 
 /*******************************************************************************
   Implementation of QR decomposition with the Householder algorithm.

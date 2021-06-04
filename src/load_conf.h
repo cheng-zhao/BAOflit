@@ -63,9 +63,12 @@ typedef struct {
   double *pmax_B;       /* BIAS_PRIOR_MAX       */
   double *pcen_B;       /* BIAS_PRIOR_CEN       */
   double *psig_B;       /* BIAS_PRIOR_SIG       */
+  int Snltype;          /* SIGMA_TYPE           */
   double *val_Snl;      /* SIGMA_VALUE          */
   double *pmin_Snl;     /* SIGMA_PRIOR_MIN      */
   double *pmax_Snl;     /* SIGMA_PRIOR_MAX      */
+  double *pcen_Snl;     /* SIGMA_PRIOR_CEN      */
+  double *psig_Snl;     /* SIGMA_PRIOR_SIG      */
   int npoly;            /* NUM_NUISANCE         */
 
   char *fplin;          /* PK_LINEAR            */

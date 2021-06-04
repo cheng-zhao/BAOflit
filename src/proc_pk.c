@@ -163,8 +163,8 @@ int pk_norm(const double *k, const double *P, const size_t n, const double *knw,
   ksp = Psp = kv = Pv = NULL;
   ksp = malloc(sizeof(double) * nsp);
   Psp = malloc(sizeof(double) * nsp);
-  kv = malloc(sizeof(double) * nv);
-  Pv = malloc(sizeof(double) * nv);
+  kv = calloc(nv, sizeof(double));
+  Pv = calloc(nv, sizeof(double));
   if (!ksp || !Psp || !kv || !Pv) {
     P_ERR("failed to allocate memory for power spectrum normalisation\n");
     if (ksp) free(ksp);

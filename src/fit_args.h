@@ -40,9 +40,10 @@
 \*============================================================================*/
 
 typedef enum {
-  BIAS_PRIOR_FLAT = 0,
-  BIAS_PRIOR_GAUSS = 1
-} bias_prior_t;
+  BAOFLIT_PARAM_FIX = -1,
+  BAOFLIT_PRIOR_FLAT = 0,
+  BAOFLIT_PRIOR_GAUSS = 1
+} BAOFLIT_param_t;
 
 typedef enum {
   PK_INT_TRAPZ = 0,
@@ -54,11 +55,13 @@ typedef struct {
   double *pmin;         /* lower prior limit of the fitting parameters       */
   double *pmax;         /* upper prior limit of the fitting parameters       */
   int num_B;            /* number of free bias parameters                    */
-  bias_prior_t Btype;   /* bias prior type                                   */
-  const double *pcen;   /* center of Gaussian priors for the bias parameters */
-  const double *psig;   /* sigma of Gaussian priors for the bias parameters  */
+  BAOFLIT_param_t Btype;        /* bias prior type                           */
+  const double *Bcen;   /* center of Gaussian priors for the bias parameters */
+  const double *Bsig;   /* sigma of Gaussian priors for the bias parameters  */
   int *idx_B;           /* indices of bias parameters for the fitted 2PCFs   */
-  bool fit_Snl;         /* indicate whether fitting Sigma_nl                 */
+  BAOFLIT_param_t Snltype;      /* Sigma_nl prior type                       */
+  const double *Snlcen; /* center of Gaussian priors for Sigma_nl            */
+  const double *Snlsig; /* sigma of Gaussian priors for Sigma_nl             */
   double *pmodel;       /* mean/best-fit/MAP fitting parameters              */
   double *amodel;       /* mean/best-fit/MAP nuisance parameters             */
   double maxlnlike;     /* maximum log-likelihood                            */

@@ -53,14 +53,15 @@ static ARGS *init_args(const CONF *conf) {
   args->has_nwt = conf->has_nwt;
   args->ns = (size_t) conf->ns;
   args->npoly = conf->npoly;
-  args->pcen = conf->pcen_B;
-  args->psig = conf->psig_B;
-  args->fit_Snl = (conf->val_Snl) ? false : true;
+  args->Bcen = conf->pcen_B;
+  args->Bsig = conf->psig_B;
+  args->Snlcen = conf->pcen_Snl;
+  args->Snlsig = conf->psig_Snl;
   args->maxlnlike = -DBL_MAX;
 
   switch (conf->Btype) {
-    case BIAS_PRIOR_FLAT:
-    case BIAS_PRIOR_GAUSS:
+    case BAOFLIT_PRIOR_FLAT:
+    case BAOFLIT_PRIOR_GAUSS:
       args->Btype = conf->Btype;
       break;
     default:
@@ -68,6 +69,18 @@ static ARGS *init_args(const CONF *conf) {
       free(args);
       return NULL;
   }
+  switch (conf->Snltype) {
+    case BAOFLIT_PARAM_FIX:
+    case BAOFLIT_PRIOR_FLAT:
+    case BAOFLIT_PRIOR_GAUSS:
+      args->Snltype = conf->Snltype;
+      break;
+    default:
+      P_ERR("invalid Sigma_nl type: %d\n", conf->Snltype);
+      free(args);
+      return NULL;
+  }
+
   switch (conf->pkint) {
     case PK_INT_TRAPZ:
     case PK_INT_LEGAUSS:
@@ -102,13 +115,13 @@ Return:
 static int init_param(const CONF *conf, ARGS *args) {
   /* Compute the number of free parameters. */
   int npar = 1 + conf->num_B;
-  if (args->fit_Snl) npar += conf->ninput;
+  if (args->Snltype != BAOFLIT_PARAM_FIX) npar += conf->ninput;
   args->npar = npar;
 
   /* Allocate memory. */
   args->pmin = malloc(sizeof(double) * npar);
   args->pmax = malloc(sizeof(double) * npar);
-  args->idx_B = malloc(sizeof(double) * conf->ninput * 2);
+  args->idx_B = malloc(sizeof(int) * conf->ninput * 2);
   args->pmodel = malloc(sizeof(double) * npar * 3);
   if (!args->pmin || !args->pmax || !args->idx_B || !args->pmodel) {
     P_ERR("failed to allocate memory for the fitting parameters\n");
@@ -122,7 +135,7 @@ static int init_param(const CONF *conf, ARGS *args) {
     args->pmin[i + 1] = conf->pmin_B[i];
     args->pmax[i + 1] = conf->pmax_B[i];
   }
-  if (args->fit_Snl) {
+  if (args->Snltype != BAOFLIT_PARAM_FIX) {
     for (int i = 0; i < conf->ninput; i++) {
       args->pmin[i + conf->num_B + 1] = conf->pmin_Snl[i];
       args->pmax[i + conf->num_B + 1] = conf->pmax_Snl[i];
@@ -174,8 +187,10 @@ static int read_data(const CONF *conf, ARGS *args) {
     args->idata[i] = size;
     double *x, *y;
     if (read_table(conf->fdata[i], conf->comment, conf->dscol[i],
-        conf->dxicol[i], conf->fitmin[i], conf->fitmax[i], &x, &y, &n))
+        conf->dxicol[i], conf->fitmin[i], conf->fitmax[i], &x, &y, &n)) {
+      free(s); free(data);
       return BAOFLIT_ERR_FILE;
+    }
     if (size > SIZE_MAX - n) {
       P_ERR("too many samples in the data files\n");
       free(x); free(y); free(s); free(data);
@@ -294,6 +309,7 @@ static int get_cov(const CONF *conf, ARGS * args) {
     /* Check the dimension. */
     if (args->nmock - args->nbin < 3) {
       P_ERR("%zu mocks are not enough for %zu bins\n", args->nmock, args->nbin);
+      free(ximock);
       return BAOFLIT_ERR_INIT;
     }
 
@@ -451,6 +467,7 @@ static int init_pk(const CONF *conf, ARGS *args) {
     if (j != conf->num_nwt) {
       P_ERR("unexpected number of non-wiggle tracer power spectrum: %d "
           "rather than %d\n", j, conf->num_nwt);
+      free(lnk); free(fac);
       return BAOFLIT_ERR_UNKNOWN;
     }
   }

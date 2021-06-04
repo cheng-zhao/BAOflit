@@ -336,9 +336,9 @@ int read_mocks(const char *fname, const char comment, const int scol,
       }
       for (size_t i = 0; i < num; i++) {
         if (sref[i] - x[i] < -DOUBLE_TOL || sref[i] - x[i] > DOUBLE_TOL) {
-          fclose(fp); free(chunk); free(ximock); free(x); free(y);
           P_ERR("unexpected separation (" OFMT_DBL ") in file: `%s'\n",
               x[i], p);
+          fclose(fp); free(chunk); free(ximock); free(x); free(y);
           return BAOFLIT_ERR_FILE;
         }
       }
