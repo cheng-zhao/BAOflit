@@ -144,8 +144,8 @@ int save_param(const CONF *conf) {
 }
 
 /******************************************************************************
-Function `save_table`:
-  Save a table to a text file.
+Function `save_model`:
+  Save a model to a text file.
 Arguments:
   * `bname`:    basename of the output file;
   * `suffix`:   suffix of the output filename;
@@ -153,12 +153,14 @@ Arguments:
   * `y`:        the second column of the table;
   * `n` :       number of rows to be saved;
   * `idx`:      starting indices for segments (different 2PCFs);
-  * `nidx`:     number of segements.
+  * `nidx`:     number of segements;
+  * `chi2`:     chi-squared value of the model.
 Return:
   Zero on success; non-zero on error.
 ******************************************************************************/
-int save_table(char *bname, const char *suffix, const double *x,
-    const double *y, const size_t n, const size_t *idx, const int nidx) {
+int save_model(char *bname, const char *suffix, const double *x,
+    const double *y, const size_t n, const size_t *idx, const int nidx,
+    const double chi2) {
   if (!bname || !(*bname) || !suffix || !(*suffix) || !x || !y || !n) {
     P_ERR("the table to be saved is not initialised\n");
     return BAOFLIT_ERR_ARG;
@@ -182,6 +184,8 @@ int save_table(char *bname, const char *suffix, const double *x,
     P_ERR("failed to open file for writing: `%s'\n", bname);
     return BAOFLIT_ERR_FILE;
   }
+
+  fprintf(fp, "%c Chi-squared: " OFMT_DBL "\n", BAOFLIT_SAVE_COMMENT, chi2);
 
   if (nidx > 1) {
     fprintf(fp, "%c Starting indices for different 2PCFs:\n%c",

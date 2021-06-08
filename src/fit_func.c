@@ -181,13 +181,16 @@ static int eval_model(CONF *conf, ARGS *args) {
   for (int mid = 0; mid < 3; mid++) {
     double *pbest = args->pmodel + mid * args->npar;
     /* Perform the fit. */
-    if (args->Snltype != BAOFLIT_PARAM_FIX)
+/*    if (args->Snltype != BAOFLIT_PARAM_FIX)
       xi_template(pbest + 1 + args->num_B, args);
     xi_residual(pbest, args);
     if (args->npoly) {
       least_square_fit(args);
       memcpy(args->amodel + ntot * mid, args->apoly, sizeof(double) * ntot);
     }
+*/
+    double chi2 = chi_squared(pbest, args);
+    memcpy(args->amodel + ntot * mid, args->apoly, sizeof(double) * ntot);
 
     /* Recover the model 2PCFs. */
     size_t len = 0;
@@ -224,7 +227,7 @@ static int eval_model(CONF *conf, ARGS *args) {
     }
 
     /* Save the best-fit model 2PCFs. */
-    if (save_table(conf->oroot, bname[mid], s, xi, len, idx, args->nxi)) {
+    if (save_model(conf->oroot, bname[mid], s, xi, len, idx, args->nxi, chi2)) {
       free(s); free(xi); free(idx);
       return BAOFLIT_ERR_FILE;
     }
