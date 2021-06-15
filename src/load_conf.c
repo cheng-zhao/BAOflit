@@ -1274,7 +1274,7 @@ static void conf_print(const CONF *conf) {
   if (conf->fpnw) printf("\n  PK_NOBAO_MATTER = %s", conf->fpnw);
   if (conf->fpnwt) {
     printf("\n  PK_NOBAO_TRACER = %s",
-        (*conf->fpnwt[0]) ? "\"\"" : conf->fpnwt[0]);
+        (*conf->fpnwt[0]) ? conf->fpnwt[0] : "\"\"");
     for (int i = 1; i < conf->ninput; i++) {
       if (*conf->fpnwt[i]) printf("\n                    %s", conf->fpnwt[i]);
       else printf("\n                    \"\"");
