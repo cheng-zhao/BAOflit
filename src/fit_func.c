@@ -215,6 +215,8 @@ static int eval_model(CONF *conf, ARGS *args) {
         for (int j = 0; j < args->npoly; j++)
           xib[i] += args->apoly[j + k * args->npoly] * pow(sb[i], j - 2);
       }
+      /* Shift back the abscissas. */
+      for (size_t i = 0; i < ns; i++) sb[i] /= pbest[0];
       len += ns;
     }
 
@@ -324,12 +326,14 @@ void run_multinest(CONF *conf, ARGS *args) {
   for (int i = 0; i < args->npar * 3; i++) args->pmodel[i] = 1;
   /* Parameter orders: alpha, B_1, B_2, ..., B_n, Snl_1, Snl_2, ..., Snl_n. */
   args->pmodel[0] = 1;
-  args->pmodel[1] = 1.45;
-  args->pmodel[2] = 0.74;
-  args->pmodel[3] = 7.5;
-  args->pmodel[4] = 5.9;
-  args->pmodel[5] = 6.4;
-
+  args->pmodel[1] = 1;
+  args->pmodel[2] = 3;
+  args->pmodel[3] = 1;
+  args->pmodel[4] = 1;
+  args->pmodel[5] = 5;
+  args->pmodel[6] = 1;
+  args->pmodel[7] = 1;
+  args->pmodel[8] = 7;
   args->maxlnlike = -0.5 * chi_squared(args->pmodel, args);
 #else
   /* Pre-process the filename to be accessed by fortran. */
