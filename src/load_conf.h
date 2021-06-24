@@ -69,13 +69,23 @@ typedef struct {
   double *pmax_Snl;     /* SIGMA_PRIOR_MAX      */
   double *pcen_Snl;     /* SIGMA_PRIOR_CEN      */
   double *psig_Snl;     /* SIGMA_PRIOR_SIG      */
+#ifdef PARA_MODEL
+  int ctype;            /* C_TYPE               */
+  double *val_c;        /* C_VALUE              */
+  double *pmin_c;       /* C_PRIOR_MIN          */
+  double *pmax_c;       /* C_PRIOR_MAX          */
+  double *pcen_c;       /* C_PRIOR_CEN          */
+  double *psig_c;       /* C_PRIOR_SIG          */
+#endif
   int npoly;            /* NUM_NUISANCE         */
 
   char *fplin;          /* PK_LINEAR            */
   char *fpnw;           /* PK_NOBAO_MATTER      */
+#ifndef PARA_MODEL
   char **fpnwt;         /* PK_NOBAO_TRACER      */
   int num_nwt;          /* Number of non-wiggle tracer power spectra. */
   bool *has_nwt;        /* Indicate if non-wiggle tracer power spectra exist. */
+#endif
   double knorm;         /* K_NORM               */
   double kmin;          /* K_MIN                */
   double kmax;          /* K_MAX                */

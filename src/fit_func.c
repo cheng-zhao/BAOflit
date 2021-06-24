@@ -28,14 +28,25 @@
 Function `xi_template`:
   Compute the template 2-point correlation function.
 Arguments:
-  * `par`:      array of the Sigma_nl parameters;
+  * `Snl`:      array of the Sigma_nl parameters;
+  * `c`:        array of the c parameters;
   * `args`:     structure for storing fitting arguments.
 ******************************************************************************/
-static inline void xi_template(const double *par, ARGS *args) {
+static inline void xi_template(const double *Snl,
+#ifdef PARA_MODEL
+    const double *c,
+#endif
+    ARGS *args) {
   memset(args->xit[0], 0, sizeof(double) * args->ns * args->nxi);
   for (int k = 0; k < args->nxi; k++) {
-    double Snl2 = par[k] * par[k];
+    double Snl2 = Snl[k] * Snl[k];
     /* Compute the template power spectra. */
+#ifdef PARA_MODEL
+    for (size_t j = 0; j < args->nk; j++) {
+      args->Pm[j] = (args->PBAO[j] * exp(-args->halfk2[j] * Snl2)
+          + args->Pnw[j]) * (1 + c[k] * args->k[j]);    /* args->k stores k^2 */
+    }
+#else
     if (args->has_nwt[k]) {
       for (size_t j = 0; j < args->nk; j++) {
         args->Pm[j] = (args->PBAO[j] * exp(-args->halfk2[j] * Snl2)
@@ -48,6 +59,7 @@ static inline void xi_template(const double *par, ARGS *args) {
             + args->Pnw[j];
       }
     }
+#endif
     /* Integrate the template power spectra. */
     for (size_t i = 0; i < args->ns; i++) {
       size_t ioff = i * args->nk;
@@ -133,8 +145,19 @@ Return:
   Address of the structure for 2PCF evaluation.
 ******************************************************************************/
 static double chi_squared(const double *par, ARGS *args) {
+#ifdef PARA_MODEL
+  if (args->Snltype != BAOFLIT_PARAM_FIX) {
+    const double *Snl = par + 1 + args->num_B;
+    const double *c = (args->ctype == BAOFLIT_PARAM_FIX) ?
+        args->cval : par + args->cidx;
+    xi_template(Snl, c, args);
+  }
+  else if (args->ctype != BAOFLIT_PARAM_FIX)
+    xi_template(args->Snlval, par + 1 + args->num_B, args);
+#else
   if (args->Snltype != BAOFLIT_PARAM_FIX)
     xi_template(par + 1 + args->num_B, args);
+#endif
   xi_residual(par, args);
   if (args->npoly) least_square_fit(args);
 
@@ -268,6 +291,14 @@ static void log_like(double *par, int *ndim, int *npar, double *lnlike,
       *lnlike -= 0.5 * d * d;
     }
   }
+#ifdef PARA_MODEL
+  if (args->ctype == BAOFLIT_PRIOR_GAUSS) {
+    for (int i = 0; i < args->nxi; i++) {
+      double d = (par[args->cidx + i] - args->ccen[i]) / args->csig[i];
+      *lnlike -= 0.5 * d * d;
+    }
+  }
+#endif
 }
 
 /******************************************************************************
@@ -319,8 +350,13 @@ void run_multinest(CONF *conf, ARGS *args) {
   if (conf->verbose) printf("\n");
   fflush(stdout);
 
-  /* The template 2PCFs can be pre-computed if Sigma_nl values are fixed. */
-  if (conf->val_Snl) xi_template(conf->val_Snl, args);
+  /* The template 2PCFs can be pre-computed if Sigma_nl & c values are fixed. */
+#ifdef PARA_MODEL
+  if (args->Snltype == BAOFLIT_PARAM_FIX && args->ctype == BAOFLIT_PARAM_FIX)
+    xi_template(conf->val_Snl, conf->val_c, args);
+#else
+  if (args->Snltype == BAOFLIT_PARAM_FIX) xi_template(conf->val_Snl, args);
+#endif
 
 #ifdef DEBUG
   for (int i = 0; i < args->npar * 3; i++) args->pmodel[i] = 1;
@@ -385,14 +421,24 @@ void run_multinest(CONF *conf, ARGS *args) {
       double *pbest = args->pmodel + mid * args->npar;
       printf("  %s parameters:\n    alpha: " OFMT_DBL "\n    bias:",
           ptype[mid], pbest[0]);
+
       for (int i = 0; i < args->num_B; i++)
         printf(" " OFMT_DBL, pbest[i + 1]);
 
       if (args->Snltype != BAOFLIT_PARAM_FIX) {
         printf("\n    Sigma_nl:");
         for (int i = 0; i < args->nxi; i++)
-          printf(" " OFMT_DBL, pbest[1 + args->num_B + i]);
+          printf(" " OFMT_DBL, pbest[i + 1 + args->num_B]);
       }
+
+#ifdef PARA_MODEL
+      if (args->ctype != BAOFLIT_PARAM_FIX) {
+        printf("\n    c:");
+        for (int i = 0; i < args->nxi; i++)
+          printf(" " OFMT_DBL, pbest[args->cidx + i]);
+      }
+#endif
+
       if (args->npoly) {
         printf("\n    Nuisance parameters:");
         size_t ntot = (size_t) args->npoly * (size_t) args->nxi;

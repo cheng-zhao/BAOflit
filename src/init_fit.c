@@ -43,14 +43,13 @@ static ARGS *init_args(const CONF *conf) {
   args->data = args->s = args->Rcov = NULL;
   args->idata = args->edata = NULL;
   args->k = args->fac = args->halfk2 = args->PBAO = args->Pnw = args->Pm = NULL;
-  args->Pnwt = args->xit = args->xipp = NULL;
+  args->xit = args->xipp = NULL;
   args->st = args->st2 = args->sm = args->xim = NULL;
   args->apoly = args->basis = args->LS_U = args->LS_Z = NULL;
   args->idx_B = NULL;
 
   args->num_B = conf->num_B;
   args->nxi = conf->ninput;
-  args->has_nwt = conf->has_nwt;
   args->ns = (size_t) conf->ns;
   args->npoly = conf->npoly;
   args->Bcen = conf->pcen_B;
@@ -58,6 +57,16 @@ static ARGS *init_args(const CONF *conf) {
   args->Snlcen = conf->pcen_Snl;
   args->Snlsig = conf->psig_Snl;
   args->maxlnlike = -DBL_MAX;
+
+#ifdef PARA_MODEL
+  args->Snlval = conf->val_Snl;
+  args->ccen = conf->pcen_c;
+  args->csig = conf->psig_c;
+  args->cval = conf->val_c;
+#else
+  args->Pnwt = NULL;
+  args->has_nwt = conf->has_nwt;
+#endif
 
   switch (conf->Btype) {
     case BAOFLIT_PRIOR_FLAT:
@@ -76,10 +85,23 @@ static ARGS *init_args(const CONF *conf) {
       args->Snltype = conf->Snltype;
       break;
     default:
-      P_ERR("invalid Sigma_nl type: %d\n", conf->Snltype);
+      P_ERR("invalid type of Sigma_nl parameter: %d\n", conf->Snltype);
       free(args);
       return NULL;
   }
+#ifdef PARA_MODEL
+  switch (conf->ctype) {
+    case BAOFLIT_PARAM_FIX:
+    case BAOFLIT_PRIOR_FLAT:
+    case BAOFLIT_PRIOR_GAUSS:
+      args->ctype = conf->ctype;
+      break;
+    default:
+      P_ERR("invalid type of c parameter: %d\n", conf->ctype);
+      free(args);
+      return NULL;
+  }
+#endif
 
   switch (conf->pkint) {
     case PK_INT_TRAPZ:
@@ -116,6 +138,10 @@ static int init_param(const CONF *conf, ARGS *args) {
   /* Compute the number of free parameters. */
   int npar = 1 + conf->num_B;
   if (args->Snltype != BAOFLIT_PARAM_FIX) npar += conf->ninput;
+#ifdef PARA_MODEL
+  args->cidx = npar;
+  if (args->ctype != BAOFLIT_PARAM_FIX) npar += conf->ninput;
+#endif
   args->npar = npar;
 
   /* Allocate memory. */
@@ -137,12 +163,20 @@ static int init_param(const CONF *conf, ARGS *args) {
   }
   if (args->Snltype != BAOFLIT_PARAM_FIX) {
     for (int i = 0; i < conf->ninput; i++) {
-      args->pmin[i + conf->num_B + 1] = conf->pmin_Snl[i];
-      args->pmax[i + conf->num_B + 1] = conf->pmax_Snl[i];
+      args->pmin[i + 1 + args->num_B] = conf->pmin_Snl[i];
+      args->pmax[i + 1 + args->num_B] = conf->pmax_Snl[i];
     }
   }
+#ifdef PARA_MODEL
+  if (args->ctype != BAOFLIT_PARAM_FIX) {
+    for (int i = 0; i < conf->ninput; i++) {
+      args->pmin[args->cidx + i] = conf->pmin_c[i];
+      args->pmax[args->cidx + i] = conf->pmax_c[i];
+    }
+  }
+#endif
 
-  /* Set prior indices. */
+  /* Set bias prior indices. */
   for (int i = 0; i < conf->ninput; i++) {
     for (int k = 0; k < 2; k++) {
       int idx = -1;
@@ -445,6 +479,7 @@ static int init_pk(const CONF *conf, ARGS *args) {
     free(lnk); free(fac);
     return BAOFLIT_ERR_MEMORY;
   }
+#ifndef PARA_MODEL
   if (!(args->Pnwt = malloc(sizeof(double *) * args->nxi))) {
     P_ERR("failed to allocate memory for tracer non-wiggle power spectra\n");
     free(lnk); free(fac);
@@ -471,6 +506,7 @@ static int init_pk(const CONF *conf, ARGS *args) {
       return BAOFLIT_ERR_UNKNOWN;
     }
   }
+#endif
 
   /* Read the linear matter power spectrum. */
   double *klin, *Plin;
@@ -541,6 +577,7 @@ static int init_pk(const CONF *conf, ARGS *args) {
   free(Plin);
   for (size_t i = 0; i < args->nk; i++) args->PBAO[i] -= args->Pnw[i];
 
+#ifndef PARA_MODEL
   /* Read linear non-wiggle tracer power spectrum. */
   if (conf->num_nwt) {
     /* Prepare for interpolating the linear non-wiggle matter power spectrum. */
@@ -629,6 +666,7 @@ static int init_pk(const CONF *conf, ARGS *args) {
 
     free(ypp);
   }
+#endif
 
   free(knw);
   free(Pnw);
@@ -660,11 +698,11 @@ Return:
   sinc(x).
 ******************************************************************************/
 static inline double sphbessel_j0(double x) {
-  if (x < 0.01) {
+  if (x > 0.01) return sin(x) / x;
+  else {
     double xx = x * x;
     return 1 - xx * 0x1.5555555555555p-3 + xx * xx * 0x1.1111111111111p-7;
   }
-  else return sin(x) / x;
 }
 
 /******************************************************************************
@@ -825,6 +863,11 @@ ARGS *init_fit(const CONF *conf) {
     return NULL;
   }
 
+#ifdef PARA_MODEL
+  /* Pre-compute k^2. */
+  for (size_t i = 0; i < args->nk; i++) args->k[i] *= args->k[i];
+#endif
+
   printf(FMT_DONE);
   return args;
 }
@@ -855,10 +898,12 @@ void args_destroy(ARGS *args) {
   if (args->fac) free(args->fac);
   if (args->PBAO) free(args->PBAO);
   if (args->Pnw) free(args->Pnw);
+#ifndef PARA_MODEL
   if (args->Pnwt) {
     if (args->Pnwt[0]) free(args->Pnwt[0]);
     free(args->Pnwt);
   }
+#endif
   if (args->Pm) free(args->Pm);
 
   if (args->st) free(args->st);

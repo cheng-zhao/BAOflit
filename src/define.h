@@ -71,6 +71,7 @@
 #define DEFAULT_COMMENT                 '#'
 #define DEFAULT_BIAS_PRIOR              BAOFLIT_PRIOR_FLAT
 #define DEFAULT_SIGMA_TYPE              BAOFLIT_PRIOR_FLAT
+#define DEFAULT_C_TYPE                  BAOFLIT_PRIOR_FLAT
 #define DEFAULT_NUM_NUISANCE            3
 #define DEFAULT_PK_INT_METHOD           0
 #define DEFAULT_RESUME                  true

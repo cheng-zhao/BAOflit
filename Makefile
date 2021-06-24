@@ -3,6 +3,9 @@ FC = gfortran
 CFLAGS = -std=c99 -O3 -Wall
 FFLAGS = -ffree-line-length-none -O3
 
+# Uncomment for fitting with the parabolic power spectrum model
+#CFLAGS += -DPARA_MODEL
+
 MNDIR = MultiNest
 CLIBS = -lm -lnest3 -L$(MNDIR)
 FLIBS = -llapack

@@ -62,6 +62,14 @@ typedef struct {
   BAOFLIT_param_t Snltype;      /* Sigma_nl prior type                       */
   const double *Snlcen; /* center of Gaussian priors for Sigma_nl            */
   const double *Snlsig; /* sigma of Gaussian priors for Sigma_nl             */
+#ifdef PARA_MODEL
+  const double *Snlval; /* fixed Sigma_nl values                             */
+  BAOFLIT_param_t ctype;        /* c prior type                              */
+  const double *ccen;   /* center of Gaussian priors for c                   */
+  const double *csig;   /* sigma of Gaussian priors for c                    */
+  const double *cval;   /* fixed c values                                    */
+  int cidx;             /* starting index of c parameters                    */
+#endif
   double *pmodel;       /* mean/best-fit/MAP fitting parameters              */
   double *amodel;       /* mean/best-fit/MAP nuisance parameters             */
   double maxlnlike;     /* maximum log-likelihood                            */
@@ -82,8 +90,10 @@ typedef struct {
   double *halfk2;       /* pre-computed k^2 / 2                              */
   double *PBAO;         /* BAO wiggles from the linear matter power spectra  */
   double *Pnw;          /* wiggle-free linear matter power spectrum          */
+#ifndef PARA_MODEL
   double **Pnwt;        /* wiggle-free linear tracer power spectra           */
   const bool *has_nwt;  /* whether wiggle-free tracer power spectra exist    */
+#endif
   double *Pm;           /* model power spectrum                              */
 
   size_t ns;            /* number of separation bins for the template 2PCF   */

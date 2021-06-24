@@ -111,6 +111,14 @@ int save_param(const CONF *conf) {
           conf->tracer[i][1], conf->tracer[i][0], conf->tracer[i][1]);
     }
   }
+#ifdef PARA_MODEL
+  if (!conf->val_c) {
+    for (int i = 0; i < conf->ninput; i++) {
+      fprintf(fp, "c_%c%c $c_{%c%c}$\n", conf->tracer[i][0],
+          conf->tracer[i][1], conf->tracer[i][0], conf->tracer[i][1]);
+    }
+  }
+#endif
   if (fclose(fp)) P_WRN("failed to close file: `%s'\n", fname);
 
   /* Save the prior limits. */
@@ -137,6 +145,14 @@ int save_param(const CONF *conf) {
           conf->tracer[i][1], conf->pmin_Snl[i], conf->pmax_Snl[i]);
     }
   }
+#ifdef PARA_MODEL
+  if (!conf->val_c) {
+    for (int i = 0; i < conf->ninput; i++) {
+      fprintf(fp, "c_%c%c " OFMT_DBL " " OFMT_DBL "\n", conf->tracer[i][0],
+          conf->tracer[i][1], conf->pmin_c[i], conf->pmax_c[i]);
+    }
+  }
+#endif
   if (fclose(fp)) P_WRN("failed to close file: `%s'\n", fname);
 
   free(fname);

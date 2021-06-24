@@ -135,7 +135,7 @@ Perform multi-tracer BAO fit with the MultiNest sampler.\n\
       --Snl-type        " FMT_KEY(SIGMA_TYPE) "      Integer\n\
         Specify the way the BAO damping parameters (Sigma_nl) is dealt with\n\
       --Snl-value       " FMT_KEY(SIGMA_VALUE) "     Double array\n\
-        Set fixed values Sigma_nl\n\
+        Set fixed values of Sigma_nl\n\
       --Snl-min         " FMT_KEY(SIGMA_PRIOR_MIN) " Double array\n\
         Set the lower prior limits of Sigma_nl\n\
       --Snl-max         " FMT_KEY(SIGMA_PRIOR_MAX) " Double array\n\
@@ -143,16 +143,32 @@ Perform multi-tracer BAO fit with the MultiNest sampler.\n\
       --Snl-center      " FMT_KEY(SIGMA_PRIOR_CEN) " Double array\n\
         Set the central values for Gaussian priors of Sigma_nl\n\
       --Snl-sigma       " FMT_KEY(SIGMA_PRIOR_SIG) " Double array\n\
-        Set the standard deviations for Gaussian priors of Sigma_nl\n\
-      --num-nuisance    " FMT_KEY(NUM_NUISANCE) "    Integer\n\
+        Set the standard deviations for Gaussian priors of Sigma_nl\n"
+#ifdef PARA_MODEL
+"      --c-type          " FMT_KEY(C_TYPE) "      Integer\n\
+        Specify the way the power spectrum shape parameters (c) is dealt with\n\
+      --c-value         " FMT_KEY(C_VALUE) "     Double array\n\
+        Set fixed values of c\n\
+      --c-min           " FMT_KEY(C_PRIOR_MIN) " Double array\n\
+        Set the lower prior limits of c\n\
+      --c-max           " FMT_KEY(C_PRIOR_MAX) " Double array\n\
+        Set the upper prior limits of c\n\
+      --c-center        " FMT_KEY(C_PRIOR_CEN) " Double array\n\
+        Set the central values for Gaussian priors of c\n\
+      --c-sigma         " FMT_KEY(C_PRIOR_SIG) " Double array\n\
+        Set the standard deviations for Gaussian priors of c\n"
+#endif
+"      --num-nuisance    " FMT_KEY(NUM_NUISANCE) "    Integer\n\
         Number of nuisance parameters for least-squared fits\n\
   -p, --pk-lin          " FMT_KEY(PK_LINEAR) "       String\n\
         Set the input linear matter power spectrum\n\
   -P, --pk-nw           " FMT_KEY(PK_NOBAO_MATTER) " String\n\
-        Set the input linear non-wiggle matter power spectrum\n\
-      --pk-tracer       " FMT_KEY(PK_NOBAO_TRACER) " String array\n\
-        Set the input linear non-wiggle tracer power spectrum templates\n\
-      --k-norm          " FMT_KEY(K_NORM) "          Double\n\
+        Set the input linear non-wiggle matter power spectrum\n"
+#ifndef PARA_MODEL
+"      --pk-tracer       " FMT_KEY(PK_NOBAO_TRACER) " String array\n\
+        Set the input linear non-wiggle tracer power spectrum templates\n"
+#endif
+"      --k-norm          " FMT_KEY(K_NORM) "          Double\n\
         The upper limit of k used for non-wiggle power spectra normalisations\n\
       --k-min           " FMT_KEY(K_MIN) "           Double\n\
         Minimum k value for sampling template power spectra\n\
@@ -287,13 +303,13 @@ BIAS_PRIOR_SIG  = \n\
     # Mean and standard deviation for the Gaussian prior of B.\n\
     # Double-precision number or array, same dimension as `TRACER_BIAS_FIT`.\n\
 SIGMA_TYPE      = \n\
-    # Type of the Sigma_nl parameters for the fit (unset: %d).\n\
+    # Type of the BAO damping parameters (Sigma_nl, unset: %d).\n\
     # Integer, allowed values are:\n\
     # * %d: fixed value specified by `SIGMA_VALUE`;\n\
     # * %d: flat prior;\n\
     # * %d: Gaussian prior.\n\
 SIGMA_VALUE     = \n\
-    # Fixed value of the BAO damping parameter (Sigma_nl).\n\
+    # Fixed value of Sigma_nl.\n\
     # Double-precision number or array, same dimension as `DATA_FILE`.\n\
 SIGMA_PRIOR_MIN = \n\
 SIGMA_PRIOR_MAX = \n\
@@ -302,8 +318,27 @@ SIGMA_PRIOR_MAX = \n\
 SIGMA_PRIOR_CEN = \n\
 SIGMA_PRIOR_SIG = \n\
     # Mean and standard deviation for the Gaussian prior of Sigma_nl.\n\
-    # Double-precision number or array, same dimention as `DATA_FILE`.\n\
-NUM_NUISANCE    = \n\
+    # Double-precision number or array, same dimention as `DATA_FILE`.\n"
+#ifdef PARA_MODEL
+"C_TYPE          = \n\
+    # Type of the tracer power spectrum shape parameter (c, unset: %d)\n\
+    # Integer, allowed values are:\n\
+    # * %d: fixed value specified by `C_VALUE`;\n\
+    # * %d: flat prior;\n\
+    # * %d: Gaussian prior.\n\
+C_VALUE         = \n\
+    # Fixed value of c.\n\
+    # Double-precision number or array, same dimension as `DATA_FILE`.\n\
+C_PRIOR_MIN     = \n\
+C_PRIOR_MAX     = \n\
+    # Prior ranges of c, for both flat and Gaussian priors.\n\
+    # Double-precision number or array, same dimension as `DATA_FILE`.\n\
+C_PRIOR_CEN     = \n\
+C_PRIOR_SIG     = \n\
+    # Mean and standard deviation for the Gaussian prior of c.\n\
+    # Double-precision number or array, same dimention as `DATA_FILE`.\n"
+#endif
+"NUM_NUISANCE    = \n\
     # Number of noisance (polynomial) parameters for all 2PCFs (unset: %d).\n\
 \n\
 #################################\n\
@@ -317,8 +352,9 @@ PK_NOBAO_MATTER = \n\
     # Filename for the linear non-wiggle (no BAO) matter power spectrum.\n\
     # The first two columns must be k and P(k).\n\
     # If unset, the non-wiggle power spectrum will be computed following\n\
-    # Eisenstein & Hu 1998 (arXiv:astro-ph/9709112).\n\
-PK_NOBAO_TRACER = \n\
+    # Eisenstein & Hu 1998 (arXiv:astro-ph/9709112).\n"
+#ifndef PARA_MODEL
+"PK_NOBAO_TRACER = \n\
     # Filename for the linear non-wiggle tracer power spectrum.\n\
     # The first two columns must be k and P(k).\n\
     # String or string array, same dimension as `DATA_FILE`.\n\
@@ -326,8 +362,9 @@ PK_NOBAO_TRACER = \n\
     # Zhao et al. in preparation.\n\
     # Leave it unset to disable the tracer bias model for all data, or set an\n\
     # empty string (\"\") to disable the model for a given 2PCF in `DATA_FILE`.\n\
-    # See also Variu et al. in preparation.\n\
-K_NORM          = \n\
+    # See also Variu et al. in preparation.\n"
+#endif
+"K_NORM          = \n\
     # The non-wiggle power spectra are normalised below this k value.\n\
     # Double-precision number.\n\
 K_MIN           = \n\
@@ -392,8 +429,12 @@ VERBOSE         = \n\
       (double) DEFAULT_COV_RESCALE, DEFAULT_COMMENT ? DEFAULT_COMMENT : '\'',
       DEFAULT_COMMENT ? "')" : ")", DEFAULT_BIAS_PRIOR, BAOFLIT_PRIOR_FLAT,
       BAOFLIT_PRIOR_GAUSS, DEFAULT_SIGMA_TYPE, BAOFLIT_PARAM_FIX,
-      BAOFLIT_PRIOR_FLAT, BAOFLIT_PRIOR_GAUSS, DEFAULT_NUM_NUISANCE,
-      DEFAULT_PK_INT_METHOD, DEFAULT_RESUME ? 'T' : 'F',
+      BAOFLIT_PRIOR_FLAT, BAOFLIT_PRIOR_GAUSS,
+#ifdef PARA_MODEL
+      DEFAULT_C_TYPE, BAOFLIT_PARAM_FIX, BAOFLIT_PRIOR_FLAT,
+      BAOFLIT_PRIOR_GAUSS,
+#endif
+      DEFAULT_NUM_NUISANCE, DEFAULT_PK_INT_METHOD, DEFAULT_RESUME ? 'T' : 'F',
       DEFAULT_VERBOSE ? 'T' : 'F');
   exit(0);
 }
@@ -412,7 +453,7 @@ Return:
 static CONF *conf_init(void) {
   CONF *conf = calloc(1, sizeof *conf);
   if (!conf) return NULL;
-  conf->fdata = conf->fmock = conf->fpnwt = conf->tracer = NULL;
+  conf->fdata = conf->fmock = conf->tracer = NULL;
   conf->dscol = conf->dxicol = conf->mscol = conf->mxicol = NULL;
   conf->fitmin = conf->fitmax = NULL;
   conf->pmin_B = conf->pmax_B = conf->pcen_B = conf->psig_B = NULL;
@@ -420,7 +461,13 @@ static CONF *conf_init(void) {
   conf->pcen_Snl = conf->psig_Snl = NULL;
   conf->fconf = conf->fcov = conf->fplin = conf->fpnw = conf->Bfit = NULL;
   conf->oroot = NULL;
+#ifdef PARA_MODEL
+  conf->val_c = conf->pmin_c = conf->pmax_c = NULL;
+  conf->pcen_c = conf->psig_c = NULL;
+#else
+  conf->fpnwt = NULL;
   conf->has_nwt = NULL;
+#endif
   return conf;
 }
 
@@ -477,10 +524,20 @@ static cfg_t *conf_read(CONF *conf, const int argc, char *const *argv) {
     { 0 , "Snl-max"     , "SIGMA_PRIOR_MAX", CFG_ARRAY_DBL , &conf->pmax_Snl},
     { 0 , "Snl-center"  , "SIGMA_PRIOR_CEN", CFG_ARRAY_DBL , &conf->pcen_Snl},
     { 0 , "Snl-sigma"   , "SIGMA_PRIOR_SIG", CFG_ARRAY_DBL , &conf->psig_Snl},
+#ifdef PARA_MODEL
+    { 0 , "c-type"      , "C_TYPE"         , CFG_DTYPE_INT , &conf->ctype   },
+    { 0 , "c-value"     , "C_VALUE"        , CFG_ARRAY_DBL , &conf->val_c   },
+    { 0 , "c-min"       , "C_PRIOR_MIN"    , CFG_ARRAY_DBL , &conf->pmin_c  },
+    { 0 , "c-max"       , "C_PRIOR_MAX"    , CFG_ARRAY_DBL , &conf->pmax_c  },
+    { 0 , "c-center"    , "C_PRIOR_CEN"    , CFG_ARRAY_DBL , &conf->pcen_c  },
+    { 0 , "c-sigma"     , "C_PRIOR_SIG"    , CFG_ARRAY_DBL , &conf->psig_c  },
+#endif
     { 0 , "num-nuisance", "NUM_NUISANCE"   , CFG_DTYPE_INT , &conf->npoly   },
     {'p', "pk-lin"      , "PK_LINEAR"      , CFG_DTYPE_STR , &conf->fplin   },
     {'P', "pk-nw"       , "PK_NOBAO_MATTER", CFG_DTYPE_STR , &conf->fpnw    },
+#ifndef PARA_MODEL
     { 0 , "pk-tracer"   , "PK_NOBAO_TRACER", CFG_ARRAY_STR , &conf->fpnwt   },
+#endif
     { 0 , "k-norm"      , "K_NORM"         , CFG_DTYPE_DBL , &conf->knorm   },
     { 0 , "k-min"       , "K_MIN"          , CFG_DTYPE_DBL , &conf->kmin    },
     { 0 , "k-max"       , "K_MAX"          , CFG_DTYPE_DBL , &conf->kmax    },
@@ -926,6 +983,80 @@ static int conf_verify(const cfg_t *cfg, CONF *conf) {
     conf->val_Snl = NULL;
   }
 
+#ifdef PARA_MODEL
+  /* C_TYPE */
+  if (!cfg_is_set(cfg, &conf->ctype)) conf->ctype = DEFAULT_C_TYPE;
+  switch (conf->ctype) {
+    case BAOFLIT_PARAM_FIX:
+      /* C_VALUE */
+      CHECK_EXIST_ARRAY(C_VALUE, cfg, &conf->val_c, num);
+      CHECK_ARRAY_LENGTH(C_VALUE, cfg, conf->val_c, OFMT_DBL, num,
+          conf->ninput);
+      break;
+    case BAOFLIT_PRIOR_FLAT:
+      /* C_PRIOR_MIN and C_PRIOR_MAX */
+      CHECK_EXIST_ARRAY(C_PRIOR_MIN, cfg, &conf->pmin_c, num);
+      CHECK_ARRAY_LENGTH(C_PRIOR_MIN, cfg, conf->pmin_c, OFMT_DBL,
+          num, conf->ninput);
+      CHECK_EXIST_ARRAY(C_PRIOR_MAX, cfg, &conf->pmax_c, num);
+      CHECK_ARRAY_LENGTH(C_PRIOR_MAX, cfg, conf->pmax_c, OFMT_DBL,
+          num, conf->ninput);
+      for (int i = 0; i < conf->ninput; i++) {
+        if (conf->pmin_c[i] >= conf->pmax_c[i]) {
+          P_ERR(FMT_KEY(C_PRIOR_MAX) " must be larger than "
+              FMT_KEY(C_PRIOR_MIN) "\n");
+          return BAOFLIT_ERR_CFG;
+        }
+      }
+      break;
+    case BAOFLIT_PRIOR_GAUSS:
+      /* C_PRIOR_MIN and C_PRIOR_MAX */
+      CHECK_EXIST_ARRAY(C_PRIOR_MIN, cfg, &conf->pmin_c, num);
+      CHECK_ARRAY_LENGTH(C_PRIOR_MIN, cfg, conf->pmin_c, OFMT_DBL,
+          num, conf->ninput);
+      CHECK_EXIST_ARRAY(C_PRIOR_MAX, cfg, &conf->pmax_c, num);
+      CHECK_ARRAY_LENGTH(C_PRIOR_MAX, cfg, conf->pmax_c, OFMT_DBL,
+          num, conf->ninput);
+      for (int i = 0; i < conf->ninput; i++) {
+        if (conf->pmin_c[i] >= conf->pmax_c[i]) {
+          P_ERR(FMT_KEY(C_PRIOR_MAX) " must be larger than "
+              FMT_KEY(C_PRIOR_MIN) "\n");
+          return BAOFLIT_ERR_CFG;
+        }
+      }
+      /* C_PRIOR_CEN and C_PRIOR_SIG */
+      CHECK_EXIST_ARRAY(C_PRIOR_CEN, cfg, &conf->pcen_c, num);
+      CHECK_ARRAY_LENGTH(C_PRIOR_CEN, cfg, conf->pcen_c, OFMT_DBL,
+          num, conf->ninput);
+      CHECK_EXIST_ARRAY(C_PRIOR_SIG, cfg, &conf->psig_c, num);
+      CHECK_ARRAY_LENGTH(C_PRIOR_SIG, cfg, conf->psig_c, OFMT_DBL,
+          num, conf->ninput);
+      for (int i = 0; i < conf->ninput; i++) {
+        if (conf->psig_c[i] <= 0) {
+          P_ERR(FMT_KEY(C_PRIOR_SIG) " must be positive\n");
+          return BAOFLIT_ERR_CFG;
+        }
+        double low = conf->pcen_c[i] - conf->psig_c[i] * BAOFLIT_WARN_SIGMA;
+        double hi = conf->pcen_c[i] + conf->psig_c[i] * BAOFLIT_WARN_SIGMA;
+        if (conf->pmin_c[i] > low || conf->pmax_c[i] < hi) {
+          P_WRN(FMT_KEY(C_PRIOR_MIN) " (" OFMT_DBL ") or"
+              FMT_KEY(C_PRIOR_MAX) " (" OFMT_DBL ") is inside " OFMT_DBL
+              " sigma range of the Gaussian prior: [" OFMT_DBL "," OFMT_DBL
+              "]\n", conf->pmin_c[i], conf->pmax_c[i],
+              (double) BAOFLIT_WARN_SIGMA, low, hi);
+        }
+      }
+      break;
+    default:
+      P_ERR("invalid " FMT_KEY(C_TYPE) ": %d\n", conf->ctype);
+      return BAOFLIT_ERR_CFG;
+  }
+  if (conf->ctype != BAOFLIT_PARAM_FIX) {     /* clean val_c */
+    FREE_ARRAY(conf->val_c);
+    conf->val_c = NULL;
+  }
+#endif
+
   /* NUM_NUISANCE */
   if (!cfg_is_set(cfg, &conf->npoly)) conf->npoly = DEFAULT_NUM_NUISANCE;
   if (conf->npoly < 0) {
@@ -979,6 +1110,7 @@ static int conf_verify(const cfg_t *cfg, CONF *conf) {
     }
   }
 
+#ifndef PARA_MODEL
   /* PK_NOBAO_TRACER */
   conf->num_nwt = 0;
   if (!(conf->has_nwt = calloc(conf->ninput, sizeof(bool)))) {
@@ -1001,6 +1133,7 @@ static int conf_verify(const cfg_t *cfg, CONF *conf) {
       }
     }
   }
+#endif
 
   /* K_NORM */
   CHECK_EXIST_PARAM(K_NORM, cfg, &conf->knorm);
@@ -1267,11 +1400,50 @@ static void conf_print(const CONF *conf) {
       P_ERR("unexpected " FMT_KEY(SIGMA_TYPE) ": %d\n", conf->Snltype);
       return;
   }
+#ifdef PARA_MODEL
+  printf("\n  C_TYPE          = %d", conf->ctype);
+  switch (conf->ctype) {
+    case BAOFLIT_PARAM_FIX:
+      printf(" (fixed)");
+      printf("\n  C_VALUE         = " OFMT_DBL, conf->val_c[0]);
+      for (int i = 1; i < conf->ninput; i++)
+        printf(" , " OFMT_DBL, conf->val_c[i]);
+      break;
+    case BAOFLIT_PRIOR_FLAT:
+      printf(" (flat)");
+      printf("\n  C_PRIOR_MIN     = " OFMT_DBL, conf->pmin_c[0]);
+      for (int i = 1; i < conf->ninput; i++)
+        printf(" , " OFMT_DBL, conf->pmin_c[i]);
+      printf("\n  C_PRIOR_MAX     = " OFMT_DBL, conf->pmax_c[0]);
+      for (int i = 1; i < conf->ninput; i++)
+        printf(" , " OFMT_DBL, conf->pmax_c[i]);
+      break;
+    case BAOFLIT_PRIOR_GAUSS:
+      printf(" (Gaussian)");
+      printf("\n  C_PRIOR_MIN     = " OFMT_DBL, conf->pmin_c[0]);
+      for (int i = 1; i < conf->ninput; i++)
+        printf(" , " OFMT_DBL, conf->pmin_c[i]);
+      printf("\n  C_PRIOR_MAX     = " OFMT_DBL, conf->pmax_c[0]);
+      for (int i = 1; i < conf->ninput; i++)
+        printf(" , " OFMT_DBL, conf->pmax_c[i]);
+      printf("\n  C_PRIOR_CEN     = " OFMT_DBL, conf->pcen_c[0]);
+      for (int i = 1; i < conf->ninput; i++)
+        printf(" , " OFMT_DBL, conf->pcen_c[i]);
+      printf("\n  C_PRIOR_SIG     = " OFMT_DBL, conf->psig_c[0]);
+      for (int i = 1; i < conf->ninput; i++)
+        printf(" , " OFMT_DBL, conf->psig_c[i]);
+      break;
+    default:
+      P_ERR("unexpected " FMT_KEY(C_TYPE) ": %d\n", conf->ctype);
+      return;
+  }
+#endif
   printf("\n  NUM_NUISANCE    = %d", conf->npoly);
 
   /* Model evaluation. */
   printf("\n  PK_LINEAR       = %s", conf->fplin);
   if (conf->fpnw) printf("\n  PK_NOBAO_MATTER = %s", conf->fpnw);
+#ifndef PARA_MODEL
   if (conf->fpnwt) {
     printf("\n  PK_NOBAO_TRACER = %s",
         (*conf->fpnwt[0]) ? conf->fpnwt[0] : "\"\"");
@@ -1280,6 +1452,7 @@ static void conf_print(const CONF *conf) {
       else printf("\n                    \"\"");
     }
   }
+#endif
 
   printf("\n  K_NORM          = " OFMT_DBL, conf->knorm);
   printf("\n  K_MIN           = " OFMT_DBL, conf->kmin);
@@ -1396,8 +1569,16 @@ void conf_destroy(CONF *conf) {
   FREE_ARRAY(conf->psig_Snl);
   FREE_ARRAY(conf->fplin);
   FREE_ARRAY(conf->fpnw);
+#ifdef PARA_MODEL
+  FREE_ARRAY(conf->val_c);
+  FREE_ARRAY(conf->pmin_c);
+  FREE_ARRAY(conf->pmax_c);
+  FREE_ARRAY(conf->pcen_c);
+  FREE_ARRAY(conf->psig_c);
+#else
   FREE_STR_ARRAY(conf->fpnwt);
   FREE_ARRAY(conf->has_nwt);
+#endif
   FREE_ARRAY(conf->oroot);
   free(conf);
 }
